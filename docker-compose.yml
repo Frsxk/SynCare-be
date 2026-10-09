@@ -31,6 +31,11 @@ services:
       LANGFLOW_CONFIG_DIR: "/app/langflow/.cache/langflow"
       # Custom components read fixture files from disk.
       LANGFLOW_RESTRICT_LOCAL_FILE_ACCESS: "false"
+      # The Gemini component validates its key against the process environment
+      # ("set GOOGLE_API_KEY/GEMINI_API_KEY"), which takes precedence over the
+      # redacted per-node field. Injected from the gitignored .env at compose-up
+      # time; never committed. A global Variable alone is NOT sufficient.
+      GEMINI_API_KEY: "${GEMINI_API_KEY:?set GEMINI_API_KEY in .env}"
       # Clean MCP surface: without this, Langflow seeds 26 starter projects on
       # first boot and the global MCP exposes their tools too.
       LANGFLOW_CREATE_STARTER_PROJECTS: "false"
