@@ -378,15 +378,55 @@ export async function startReviewJob(
 }
 
 /**
+ * Open the SSE event feed for a background job.
+ *
+ * The console proxies this rather than letting the browser call Langflow
+ * directly, because the API key must never reach the client. Returns null on
+ * failure so the route can answer with an honest 502 instead of throwing.
+ */
+export async function streamReviewEvents(
+  jobId: string,
+  opts: { timeoutMs?: number } = {},
+): Promise<Response | null> {
+  const { baseUrl, apiKey } = readConfig()
+  const controller = new AbortController()
+  // The stream is long-lived; the caller closes it when the job settles.
+  const timeoutMs = opts.timeoutMs ?? 120_000
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    const res = await fetch(`${baseUrl}/api/v2/workflows/${encodeURIComponent(jobId)}/events`, {
+      headers: { 'x-api-key': apiKey, Accept: 'text/event-stream' },
+      signal: controller.signal,
+    })
+    if (!res.ok || !res.body) {
+      clearTimeout(timer)
+      return null
+    }
+    return new Response(res.body, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        Connection: 'keep-alive',
+      },
+    })
+  } catch {
+    clearTimeout(timer)
+    return null
+  }
+}
+
+/**
  * Resume a suspended background job with a human decision.
  *
  * Uses POST /api/v2/workflows/{job_id}/resume — the HITL resume endpoint
- * documented in Langflow's v2 Workflow API (DeepWiki: src/backend/base/
- * langflow/api/v2/workflow.py). The request body carries the human's
- * decision: the chosen action_id and optional input_value.
+ * documented in Langflow's v2 Workflow API. Verified live against 1.12.3:
+ * the decision is NESTED under "decision" and the Human Input request_id
+ * must be present, otherwise the job silently stays suspended.
  *
  * @param jobId     The job_id from startReviewJob.
- * @param decision  The human's decision (action_id + optional input_value).
+ * @param decision  The human's choice plus its request_id.
  * @param opts      Optional timeout and mock fetch.
  */
 export async function resumeReviewJob(

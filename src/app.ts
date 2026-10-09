@@ -19,6 +19,7 @@ import {
   resumeReviewJob,
   runFlow,
   startReviewJob,
+  streamReviewEvents,
 } from './plugins/langflow.ts'
 
 type FlowMap = Record<string, string>
@@ -94,6 +95,10 @@ export function createApp(deps: AppDeps = {}) {
             return c.status(500, { error: 'internal', message: 'Unexpected server error.' })
         }
       }) as never)
+
+    .get('/', () => new Response(readFileSync(join(import.meta.dir, '..', 'public', 'index.html')), {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    }))
 
     .get('/healthz', async ({ set }) => {
       let langflow: 'reachable' | 'unreachable' = 'unreachable'
@@ -288,6 +293,17 @@ export function createApp(deps: AppDeps = {}) {
         }),
       },
     )
+
+    // The browser cannot call Langflow directly (the API key must stay
+    // server-side), so the console streams the SSE event feed through here.
+    .get('/api/v1/reviews/:jobId/events', async ({ params, set }) => {
+      const stream = await streamReviewEvents(params.jobId)
+      if (!stream) {
+        set.status = 502
+        return { error: 'events_unavailable', message: 'Could not open the job event stream.' }
+      }
+      return stream
+    })
 
     // F5 grounded Q&A. Fail-closed in the flow: an unapproved patient_id is
     // refused there, never here.

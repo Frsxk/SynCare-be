@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SynCare — Ruang Perawat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#141210;
+  --paper:#f4f0e8;
+  --paper-2:#ebe5d9;
+  --rule:#c9c0ae;
+  --accent:#b23a2e;
+  --accent-2:#1d5c56;
+  --gold:#a8811f;
+  --shadow:0 1px 0 var(--rule), 0 8px 24px -12px rgba(20,18,16,.35);
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --sans:'IBM Plex Sans',sans-serif;
+  --serif:'Fraunces',Georgia,serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:15px;line-height:1.55;
+  background-image:
+    radial-gradient(circle at 12% 8%, rgba(178,58,46,.06), transparent 42%),
+    radial-gradient(circle at 88% 92%, rgba(29,92,86,.06), transparent 46%),
+    repeating-linear-gradient(0deg, rgba(20,18,16,.022) 0 1px, transparent 1px 3px);
+  min-height:100vh;
+}
+.grain::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:9;opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px 80px}
+
+/* ── masthead ─────────────────────────────────────────── */
+header{border-bottom:3px double var(--ink);padding:30px 0 18px;margin-bottom:26px}
+.kicker{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
+h1{font-family:var(--serif);font-weight:700;font-size:clamp(34px,6vw,58px);line-height:.94;margin:0;letter-spacing:-.02em}
+h1 em{font-style:italic;font-weight:300;color:var(--accent-2)}
+.tagline{font-family:var(--serif);font-style:italic;font-size:17px;color:#5a5245;margin:12px 0 0;max-width:56ch}
+.statusbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.chip{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  border:1px solid var(--rule);background:var(--paper-2);padding:5px 11px;border-radius:2px;
+  display:inline-flex;align-items:center;gap:7px;box-shadow:0 1px 0 var(--rule)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ink);flex:none}
+.dot.ok{background:var(--accent-2)}
+.dot.bad{background:var(--accent)}
+.dot.wait{background:var(--gold)}
+
+/* ── layout ───────────────────────────────────────────── */
+.cols{display:grid;grid-template-columns:1.15fr .85fr;gap:26px;align-items:start}
+@media(max-width:940px){.cols{grid-template-columns:1fr}}
+section{background:var(--paper-2);border:1px solid var(--rule);box-shadow:var(--shadow);margin-bottom:22px}
+.shead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+  padding:13px 18px;border-bottom:1px solid var(--rule);background:var(--paper)}
+.shead h2{font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;margin:0;font-weight:600}
+.shead .num{font-family:var(--serif);font-size:26px;font-weight:700;line-height:1}
+.body{padding:18px}
+
+/* ── forms ────────────────────────────────────────────── */
+label{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:#6b6254;margin-bottom:6px}
+input,textarea,select{width:100%;font-family:var(--sans);font-size:14px;color:var(--ink);
+  background:var(--paper);border:1px solid var(--rule);border-radius:2px;padding:9px 11px;
+  transition:border-color .15s,box-shadow .15s}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent-2);
+  box-shadow:0 0 0 3px rgba(29,92,86,.13)}
+textarea{resize:vertical;min-height:78px;line-height:1.5}
+.field{margin-bottom:14px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn{font-family:var(--mono);font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;
+  border:1px solid var(--ink);background:var(--ink);color:var(--paper);padding:11px 18px;
+  border-radius:2px;cursor:pointer;transition:transform .12s,box-shadow .12s,background .15s;
+  box-shadow:3px 3px 0 rgba(20,18,16,.22)}
+.btn:hover:not(:disabled){transform:translate(-1px,-1px);box-shadow:5px 5px 0 rgba(20,18,16,.22)}
+.btn:active:not(:disabled){transform:translate(1px,1px);box-shadow:1px 1px 0 rgba(20,18,16,.22)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn.danger{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.go{background:var(--accent-2);border-color:var(--accent-2);color:#fff}
+.btn.sm{padding:7px 12px;font-size:10.5px}
+
+/* ── plan cards ───────────────────────────────────────── */
+.plan{border:1px solid var(--rule);background:var(--paper);margin-bottom:14px;
+  animation:rise .5s cubic-bezier(.2,.7,.3,1) backwards}
+.plan:last-child{margin-bottom:0}
+@keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+.plan .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+  padding:13px 15px;border-bottom:1px dashed var(--rule)}
+.pid{font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:-.01em}
+.stamp{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  padding:4px 9px;border-radius:2px;border:1px solid;white-space:nowrap}
+.stamp.HIGH{color:var(--accent);border-color:var(--accent);background:rgba(178,58,46,.09)}
+.stamp.MEDIUM{color:var(--gold);border-color:var(--gold);background:rgba(168,129,31,.1)}
+.stamp.LOW{color:var(--accent-2);border-color:var(--accent-2);background:rgba(29,92,86,.09)}
+.plan .mid{padding:13px 15px;font-size:14px}
+.plan .mid p{margin:0 0 9px}
+.kv{font-family:var(--mono);font-size:11px;color:#6b6254;display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+.kv span{background:var(--paper-2);border:1px solid var(--rule);padding:2px 7px}
+.note{font-family:var(--serif);font-style:italic;font-size:13.5px;color:#5a5245;
+  border-left:2px solid var(--rule);padding-left:11px;margin-top:11px}
+.sus{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+.sus b{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:#6b6254;font-weight:600;margin-right:3px;align-self:center}
+
+/* ── audit ────────────────────────────────────────────── */
+.audit{font-family:var(--mono);font-size:11.5px;border-left:2px solid var(--accent-2);
+  padding:7px 0 7px 12px;margin-bottom:9px;background:linear-gradient(90deg,rgba(29,92,86,.05),transparent 60%)}
+.audit b{font-weight:600}
+.audit time{display:block;color:#6b6254;font-size:10.5px;margin-top:2px}
+
+/* ── log / gate ───────────────────────────────────────── */
+.log{font-family:var(--mono);font-size:11.5px;background:#191714;color:#e8e2d6;
+  padding:13px 15px;max-height:290px;overflow-y:auto;line-height:1.65;white-space:pre-wrap;word-break:break-word}
+.log:empty::after{content:'menunggu…';color:#6d6558}
+.log .err{color:#f0836f}
+.log .ok{color:#7fc9a4}
+.gate{border:1px solid var(--accent);background:rgba(178,58,46,.07);padding:13px;
+  margin-top:13px;animation:rise .4s backwards}
+.gate h3{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--accent);margin:0 0 8px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+.empty{padding:26px 18px;text-align:center;font-family:var(--serif);font-style:italic;color:#7a7263}
+
+footer{margin-top:34px;padding-top:18px;border-top:1px solid var(--rule);
+  font-family:var(--mono);font-size:10.5px;color:#6b6254;line-height:1.8}
+.banner{background:var(--accent);color:#fff;padding:9px 18px;font-family:var(--mono);
+  font-size:11px;letter-spacing:.09em;text-transform:uppercase;text-align:center}
+.banner.gold{background:var(--gold)}
+.banner.calm{background:var(--accent-2)}
+</style>
+</head>
+<body class="grain">
+<div id="banner" class="banner calm">Demo sintetis — bukan alat diagnostik. Tanpa diagnosis, perubahan obat, atau nasihat kegawatdaruratan.</div>
+
+<div class="wrap">
+  <header>
+    <p class="kicker">SynCare · Ruang Perawat</p>
+    <h1>Penyusutan <em>risiko</em><br>Care Orchestration</h1>
+    <p class="tagline">Antarmuka ini hanya menampilkan apa yang diputuskan alur kerja Langflow. Tidak ada skor, tingkat risiko, atau rencana yang dihitung di sini.</p>
+    <div class="statusbar" id="status"></div>
+  </header>
+
+  <div class="cols">
+    <div>
+      <section>
+        <div class="shead"><h2>Rencana yang Disetujui</h2><span class="num" id="planCount">0</span></div>
+        <div class="body" id="planList"><div class="empty">Belum ada rencana yang disetujui.</div></div>
+      </section>
+
+      <section>
+        <div class="shead"><h2>Jejak Audit</h2><span class="num" id="auditCount">0</span></div>
+        <div class="body" id="auditList"><div class="empty">Belum ada aktivitas tercatat.</div></div>
+      </section>
+    </div>
+
+    <div>
+      <section>
+        <div class="shead"><h2>1 · Ringkasan Pulang</h2></div>
+        <div class="body">
+          <div class="field">
+            <label for="dText">Catatan pulang (F1)</label>
+            <textarea id="dText">Pasien dengan CHF NYHA III, pulang 2026-10-01, minum furosemide 40mg harian, berat 82kg, eGFR 52, ada edema perifer ringan. Riwayat rawat inap 3 kali dalam 12 bulan terakhir, komorbiditas 4 (hipertensi, diabetes tipe 2, CKD, anemia).</textarea>
+          </div>
+          <div class="field">
+            <label for="pid">Patient ID</label>
+            <input id="pid" value="chf-demo-001" />
+          </div>
+          <button class="btn" id="btnF1">Nilai &amp; Skor</button>
+        </div>
+      </section>
+
+      <section>
+        <div class="shead"><h2>2 · Laporan Pasien (F2)</h2></div>
+        <div class="body">
+          <div class="field">
+            <label for="cText">Keluhan</label>
+            <textarea id="cText">Merasa lebih baik, obat teratur diminum.</textarea>
+          </div>
+          <div class="actions">
+            <button class="btn ghost sm" id="btnRoutine">Check-in Rutin</button>
+            <button class="btn danger sm" id="btnRed">Red Flag</button>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="shead"><h2>3 · Draf Rencana (F3)</h2></div>
+        <div class="body">
+          <div class="row">
+            <div class="field"><label for="fdate">Tanggal kontrol</label><input id="fdate" type="date" /></div>
+            <div class="field"><label for="hotline">Hotline</label><input id="hotline" value="HOTLINE-DEMO-SINTETIS" /></div>
+          </div>
+          <button class="btn" id="btnF3">Buat Draf</button>
+          <p style="font-family:var(--mono);font-size:10.5px;color:#6b6254;margin:11px 0 0">
+            F3 menolak mengarang tanggal. Isi tanggal kontrol secara eksplisit.</p>
+        </div>
+      </section>
+
+      <section>
+        <div class="shead"><h2>4 · Persetujuan Manusia (F4)</h2></div>
+        <div class="body">
+          <button class="btn go" id="btnF4">Kirim ke meja persetujuan</button>
+          <div id="gate"></div>
+          <div class="log" id="log"></div>
+        </div>
+      </section>
+
+      <section>
+        <div class="shead"><h2>5 · Tanya Jawab (F5)</h2></div>
+        <div class="body">
+          <div class="field"><label for="qText">Pertanyaan</label>
+            <input id="qText" value="Apa saja kegiatan perawatan yang harus saya lakukan setiap hari?" /></div>
+          <button class="btn" id="btnF5">Tanya</button>
+          <p style="font-family:var(--mono);font-size:10.5px;color:#6b6254;margin:11px 0 0">
+            Hanya pasien dengan rencana disetujui yang boleh ditanyakan.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <footer>
+    SYNCARE-BE · Elysia + Bun · Langflow 1.12.3 memiliki seluruh logika klinis<br>
+    Antarmuka ini hanya proksi tipis dan pembaca baca-saja. F4 satu-satunya penulis basis data tinjauan.
+  </footer>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const log = (m, cls='') => {
+  const el = $('#log');
+  const t = new Date().toLocaleTimeString('id-ID',{hour12:false});
+  el.insertAdjacentHTML('beforeend', `<span class="${cls}">[${t}] ${m}</span>\n`);
+  el.scrollTop = el.scrollHeight;
+};
+const post = async (url, body) => {
+  const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  return { status: r.status, data: await r.json().catch(()=>({})) };
+};
+// The v1 run response nests the flow's terminal text under outputs[].outputs[].results.
+const flowText = (d) => {
+  for (const o of (d.outputs||[])) {
+    for (const it of (o.outputs||[])) {
+      const t = it?.results?.message?.data?.text;
+      if (t) return t;
+    }
+  }
+  return null;
+};
+const flowJson = (d) => { const t = flowText(d); if (!t) return null; try { return JSON.parse(t) } catch { return null } };
+
+let f1Result = null;
+
+async function health() {
+  try {
+    const h = await (await fetch('/healthz')).json();
+    $('#status').innerHTML = `
+      <span class="chip"><i class="dot ${h.langflow==='reachable'?'ok':'bad'}"></i>Langflow ${h.langflow}</span>
+      <span class="chip"><i class="dot ${h.manifestComplete?'ok':'wait'}"></i>${h.flowCount} alur</span>
+      <span class="chip"><i class="dot ${h.reviewDbPresent?'ok':'wait'}"></i>DB tinjauan</span>
+      <span class="chip"><i class="dot ${h.readOnly?'wait':'ok'}"></i>${h.readOnly?'baca-saja':'tulis aktif'}</span>`;
+    $('#banner').className = 'banner ' + (h.readOnly ? 'gold' : 'calm');
+    if (h.readOnly) $('#banner').textContent = 'Mode baca-saja — alur kerja ditolak. Ini melindungi data tinjauan.';
+  } catch { $('#status').innerHTML = '<span class="chip"><i class="dot bad"></i>server tak terjangkau</span>'; }
+}
+
+async function loadPlans() {
+  const r = await fetch('/api/v1/plans');
+  if (!r.ok) { $('#planList').innerHTML = '<div class="empty">Basis data tinjauan belum ada.</div>'; return; }
+  const d = await r.json();
+  $('#planCount').textContent = d.plans.length;
+  $('#auditCount').textContent = d.audit.length;
+  $('#planList').innerHTML = d.plans.length ? d.plans.map((p,i) => {
+    const pl = p.plan || {};
+    const sus = pl.satuseshat || {};
+    const chips = Object.keys(sus).map(k=>`<span class="stamp LOW">${k}</span>`).join(' ') || '<span style="color:#7a7263;font-family:var(--mono);font-size:10px">tidak ada</span>';
+    return `<article class="plan" style="animation-delay:${i*70}ms">
+      <div class="top">
+        <span class="pid">${p.patientId||'—'}</span>
+        <span class="stamp ${(pl.tier||'LOW').toUpperCase()}">${pl.tier||'—'}</span>
+      </div>
+      <div class="mid">
+        <p>${(pl.plan_text||'').slice(0,240)}</p>
+        ${p.reviewer_note?`<div class="note">Catatan peninjau: “${p.reviewer_note}”</div>`:''}
+        <div class="kv">
+          <span>disetujui ${(p.approved_at||'').replace('T',' ').slice(0,19)}</span>
+          <span>status draf: ${pl.status||'—'}</span>
+        </div>
+        <div class="sus"><b>SATUSEHAT</b>${chips}</div>
+      </div></article>`;
+  }).join('') : '<div class="empty">Belum ada rencana yang disetujui.</div>';
+  $('#auditList').innerHTML = d.audit.length ? d.audit.map(a=>
+    `<div class="audit"><b>${a.action}</b> · ${a.actor||'—'}
+     <time>${(a.timestamp||'').replace('T',' ').slice(0,19)}</time></div>`).join('')
+    : '<div class="empty">Belum ada aktivitas tercatat.</div>';
+}
+
+$('#btnF1').onclick = async () => {
+  log('F1: mengirim ringkasan pulang…');
+  const {status,data} = await post('/api/v1/discharge', {input_value: $('#dText').value});
+  if (status !== 200) { log('F1 gagal: '+(data.message||data.error), 'err'); return; }
+  const j = flowJson(data);
+  if (!j) { log('F1 selesai, keluaran bukan JSON', 'err'); return; }
+  f1Result = j;
+  log(`F1: tier=${j.tier} skor=${j.score} (ditentukan alur kerja)`, 'ok');
+};
+$('#btnRoutine').onclick = async () => {
+  log('F2: check-in rutin…');
+  const {status,data} = await post('/api/v1/checkins', {input_value: JSON.stringify({patient_id:$('#pid').value, message:$('#cText').value})});
+  if (status!==200) return log('F2 gagal: '+(data.message||data.error),'err');
+  log('F2: '+(flowText(data)||'').slice(0,200), 'ok');
+};
+$('#btnRed').onclick = async () => {
+  log('F2: red flag…');
+  const {status,data} = await post('/api/v1/checkins', {input_value: JSON.stringify({patient_id:$('#pid').value, message:'Nyeri dada berat dan sesak napas sejak semalam.'})});
+  if (status!==200) return log('F2 gagal: '+(data.message||data.error),'err');
+  const j = flowJson(data);
+  log('F2 RED FLAG: '+(j?.action ? `${j.action} — ${j.reason}` : (flowText(data)||'')), 'err');
+};
+$('#btnF3').onclick = async () => {
+  if (!f1Result) return log('Jalankan F1 dulu — F3 memakai hasil diskornya.', 'err');
+  const ep = Object.assign({}, f1Result.episode, {
+    length_of_stay_days: f1Result.episode.length_of_stay_days ?? 6,
+    admission_type: f1Result.episode.admission_type === 'unknown' ? 'emergency' : f1Result.episode.admission_type,
+    comorbidity_count: f1Result.episode.comorbidity_count ?? 3,
+    admissions_prior_12m: f1Result.episode.admissions_prior_12m ?? 2,
+  });
+  const {status,data} = await post('/api/v1/plans/draft', {
+    patient_id: $('#pid').value, followup_date: $('#fdate').value, hotline: $('#hotline').value,
+    f1_scored_output: { episode: ep, score: f1Result.score, tier: f1Result.tier,
+      risk_factors: f1Result.risk_factors, rationale: f1Result.rationale, label: 'demo-heuristic-v1' }});
+  const j = flowJson(data);
+  if (status!==200) return log('F3 gagal: '+(data.message||data.error),'err');
+  if (j?.missing_facts?.length) return log('F3 menolak: kurang fakta '+JSON.stringify(j.missing_facts),'err');
+  window.__draft = flowText(data);
+  log('F3: draf siap (menunggu persetujuan manusia)', 'ok');
+};
+$('#btnF4').onclick = async () => {
+  if (!window.__draft) return log('Buat draf F3 dulu.', 'err');
+  log('F4: menjalankan alur kerja di latar…');
+  const {status,data} = await post('/api/v1/reviews', {draft: window.__draft});
+  if (status!==200) return log('F4 gagal: '+(data.message||data.error),'err');
+  window.__job = data.jobId;
+  log('F4: job '+data.jobId+' · menunggu gerbang manusia', 'ok');
+  watch();
+};
+function watch() {
+  const es = new EventSource('/api/v1/reviews/'+window.__job+'/events');
+  es.onmessage = (m) => {
+    let ev; try { ev = JSON.parse(m.data) } catch { return }
+    const e = ev.event || ev;
+    if (e === 'human_input_required') {
+      const d = ev.data || {};
+      log('F4: tertahan di gerbang persetujuan', 'ok');
+      showGate(d);
+    }
+    if (e === 'output') { log('F4: '+((ev.data?.content||'').slice(0,180)),'ok'); loadPlans(); }
+    if (e === 'end') { es.close(); loadPlans(); }
+    if (e === 'error') { log('F4 error: '+(ev.data?.text||'').slice(0,160),'err'); es.close(); }
+  };
+  es.onerror = () => { es.close(); log('F4: aliran peristiwa terputus (job mungkin masih berjalan)','err'); };
+}
+function showGate(d) {
+  const req = d.request_id || d.requestId;
+  const opts = (d.allowed_decisions||d.allowedDecisions||['approve','fallback']);
+  $('#gate').innerHTML = `<div class="gate"><h3>Menunggu keputusan manusia</h3>
+    <div style="font-family:var(--mono);font-size:10.5px;color:#6b6254;margin-bottom:9px">
+      batas waktu ${d.timeout_seconds||d.timeoutSeconds||300}s · ${req||''}</div>
+    <div class="actions">${opts.map(o=>
+      `<button class="btn sm ${o==='approve'?'go':o==='fallback'?'danger':'ghost'}" data-a="${o}">${o}</button>`).join('')}</div></div>`;
+  document.querySelectorAll('#gate .btn').forEach(b => b.onclick = async () => {
+    const {status,data} = await post(`/api/v1/reviews/${window.__job}/resume`, {
+      request_id: req, action_id: b.dataset.a, actor: 'perawat-console',
+      reviewer_note: b.dataset.a === 'approve' ? 'Disetujui lewat ruang perawat' : b.dataset.a});
+    log(status===200 ? `F4 resume: ${data.status}` : 'F4 resume gagal: '+(data.message||''), status===200?'ok':'err');
+    if (status===200) { $('#gate').innerHTML=''; setTimeout(watch, 800); }
+  });
+}
+$('#btnF5').onclick = async () => {
+  log('F5: bertanya grounded…');
+  const {status,data} = await post('/api/v1/answers', {patient_id: $('#pid').value, query: $('#qText').value});
+  if (status!==200) return log('F5 gagal: '+(data.message||data.error),'err');
+  log('F5: '+(flowText(data)||'').slice(0,300), 'ok');
+};
+
+$('#fdate').value = new Date(Date.now()+7*864e5).toISOString().slice(0,10);
+health(); loadPlans(); setInterval(health, 15000);
+</script>
+</body>
+</html>
