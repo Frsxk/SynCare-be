@@ -1,0 +1,46 @@
+# SynCare backend — Langflow service.
+#
+# Langflow owns ALL clinical logic (scoring, tiering, red-flag escalation, plan
+# drafting, human approval, Astra RAG). The Elysia console is a thin proxy that
+# never re-implements any of it.
+#
+# Secrets come from .env (gitignored). Never commit real values here.
+
+services:
+  langflow:
+    image: langflowai/langflow:1.12.3
+    container_name: syncare-langflow
+    restart: unless-stopped
+    ports:
+      - "${LANGFLOW_PORT:-7860}:7860"
+    environment:
+      # Fresh credentials — generated per install, never reused.
+      LANGFLOW_SUPERUSER: "${LANGFLOW_SUPERUSER:?set LANGFLOW_SUPERUSER in .env}"
+      LANGFLOW_SUPERUSER_PASSWORD: "${LANGFLOW_SUPERUSER_PASSWORD:?set LANGFLOW_SUPERUSER_PASSWORD in .env}"
+      # Encrypts global Variables (Gemini / Astra). Lose it and stored
+      # credentials become undecryptable.
+      LANGFLOW_SECRET_KEY: "${LANGFLOW_SECRET_KEY:?set LANGFLOW_SECRET_KEY in .env}"
+      # Explicit login only: the human-approval gate must never be bypassed by
+      # an auto-logged-in session.
+      LANGFLOW_AUTO_LOGIN: "${LANGFLOW_AUTO_LOGIN:-false}"
+      LANGFLOW_DATABASE_URL: "sqlite:////app/langflow/langflow.db"
+      LANGFLOW_CONFIG_DIR: "/app/langflow/.cache/langflow"
+      # Custom components read fixture files from disk.
+      LANGFLOW_RESTRICT_LOCAL_FILE_ACCESS: "false"
+      # Clean MCP surface: without this, Langflow seeds 26 starter projects on
+      # first boot and the global MCP exposes their tools too.
+      LANGFLOW_CREATE_STARTER_PROJECTS: "false"
+      LANGFLOW_UPDATE_STARTER_PROJECTS: "false"
+    volumes:
+      # Bind mount (not the stale named volume): this install starts from a
+      # clean database so the global MCP exposes only the SynCare tools.
+      - ./data/langflow:/app/langflow
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:7860/health', timeout=5).status==200 else 1)"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
+    # No memory cap by default: the baseline is measured first (docs/memory-baseline.md).
+    # If headroom proves tight, uncomment and re-measure rather than guessing.
+    # mem_limit: 1536m
