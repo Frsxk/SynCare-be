@@ -39,7 +39,12 @@ for (const [key, flowId] of Object.entries(flows)) {
     continue
   }
   const flow = (await res.json()) as {
-    data?: { nodes?: { data?: { node?: { template?: Record<string, unknown> }; id?: string } }[] }
+    data?: {
+      nodes?: {
+        id?: string
+        data?: { id?: string; node?: { template?: Record<string, unknown> } }
+      }[]
+    }
   }
 
   const nodes = flow.data?.nodes ?? []
@@ -73,7 +78,7 @@ for (const [key, flowId] of Object.entries(flows)) {
       }
       touched = true
       patched++
-      console.log(`  bound ${key} node=${node.id} field=${field}`)
+      console.log(`  bound ${key} node=${node.id ?? '(unnamed)'} field=${field}`)
     }
   }
 

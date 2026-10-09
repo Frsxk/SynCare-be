@@ -260,7 +260,7 @@ describe('resumeReviewJob', () => {
 
     const result = await resumeReviewJob(
       TEST_JOB_ID,
-      { action_id: 'approve', input_value: 'Looks good' },
+      { action_id: 'approve', input_value: 'Looks good', request_id: 'HumanInput-test:job' },
       { fetchImpl: fetch },
     )
 
@@ -273,8 +273,11 @@ describe('resumeReviewJob', () => {
     expect(call.url).toBe(`http://127.0.0.1:7860/api/v2/workflows/${TEST_JOB_ID}/resume`)
     expect(call.init.method).toBe('POST')
     const body = JSON.parse(call.init.body as string)
-    expect(body.action_id).toBe('approve')
-    expect(body.input_value).toBe('Looks good')
+    // Verified against Langflow 1.12.3: the decision is NESTED and the Human
+    // Input request_id sits at the top level.
+    expect(body.decision.action_id).toBe('approve')
+    expect(body.decision.input_value).toBe('Looks good')
+    expect(body.request_id).toBe('HumanInput-test:job')
   })
 
   test('non-2xx → throws LangflowHttpError', async () => {

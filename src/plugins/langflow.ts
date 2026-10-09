@@ -61,6 +61,18 @@ export interface ReviewDecision {
   action_id: string
   /** Optional free-text reason or input the human supplied. */
   input_value?: string
+  /**
+   * The Human Input node's request_id, advertised in the
+   * `human_input_required` event as "<node_id>:<job_id>".
+   * REQUIRED against Langflow 1.12.3: a resume without it is accepted with
+   * 200 but the job never leaves the suspended state, so a decision would be
+   * silently dropped. Verified live against the running instance.
+   */
+  request_id?: string
+  /** Who approved. Recorded in audit_log.actor by F4. */
+  actor?: string
+  /** Free-text rationale stored alongside the approval. */
+  reviewer_note?: string
 }
 
 /** Parsed result of a synchronous /v1/run call. */
@@ -387,11 +399,20 @@ export async function resumeReviewJob(
   const fetchImpl = opts.fetchImpl ?? globalThis.fetch
 
   const url = `${baseUrl}/api/v2/workflows/${jobId}/resume`
+  // Langflow 1.12.3 expects the decision nested under "decision", with the
+  // Human Input request_id at the top level. Verified live.
   const body: Record<string, unknown> = {
-    action_id: decision.action_id,
+    decision: {
+      action_id: decision.action_id,
+      actor: decision.actor,
+      reviewer_note: decision.reviewer_note,
+    },
+  }
+  if (decision.request_id !== undefined) {
+    body.request_id = decision.request_id
   }
   if (decision.input_value !== undefined) {
-    body.input_value = decision.input_value
+    ;(body.decision as Record<string, unknown>).input_value = decision.input_value
   }
 
   const { json } = await fetchJson<Record<string, unknown>>(

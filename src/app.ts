@@ -13,7 +13,13 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { DISCLAIMER, type AppConfig, loadConfig } from './config.ts'
 import { ReviewDbReader } from './plugins/review-db.ts'
-import { LangflowHttpError, LangflowTimeoutError, runFlow } from './plugins/langflow.ts'
+import {
+  LangflowHttpError,
+  LangflowTimeoutError,
+  resumeReviewJob,
+  runFlow,
+  startReviewJob,
+} from './plugins/langflow.ts'
 
 type FlowMap = Record<string, string>
 
@@ -29,6 +35,9 @@ export interface AppDeps {
   /** Injected so tests can substitute a fixture reader. */
   openDb?: (path: string) => ReviewDbReader
   runFlowImpl?: typeof runFlow
+  /** F4 must run as a v2 background job, so it gets its own client entry points. */
+  startReviewJobImpl?: typeof startReviewJob
+  resumeReviewJobImpl?: typeof resumeReviewJob
   flows?: FlowMap
 }
 
@@ -36,11 +45,17 @@ function resolveFlows(): FlowMap {
   return JSON.parse(readFileSync(join(import.meta.dir, '..', 'flows.json'), 'utf8')) as FlowMap
 }
 
+// F3 refuses to invent a follow-up date, so validate the ISO shape here rather
+// than letting the flow reject it. Elysia's `pattern` wants a string.
+const ISO_DATE = '^\\d{4}-\\d{2}-\\d{2}$'
+
 export function createApp(deps: AppDeps = {}) {
   const config = deps.config ?? loadConfig()
   const flows = deps.flows ?? resolveFlows()
   const openDb = deps.openDb ?? ((p: string) => new ReviewDbReader(p))
   const runFlowImpl = deps.runFlowImpl ?? runFlow
+  const startReviewJobImpl = deps.startReviewJobImpl ?? startReviewJob
+  const resumeReviewJobImpl = deps.resumeReviewJobImpl ?? resumeReviewJob
 
   /** Central guard: read-only mode blocks every state-changing verb. */
   const assertWritable = () => {
@@ -171,6 +186,128 @@ export function createApp(deps: AppDeps = {}) {
         return await runFlowImpl(flowId, body.input_value)
       },
       { body: t.Object({ input_value: t.String({ minLength: 1 }) }) },
+    )
+
+    // F3 guards its input: it needs F1's scored output wrapped in an envelope,
+    // plus an explicit ISO followup_date and a hotline. It refuses to invent a
+    // date, so the caller must supply real values.
+    .post(
+      '/api/v1/plans/draft',
+      async ({ body }) => {
+        assertWritable()
+        const flowId = flows.f3_draft_followup_plan
+        if (!flowId) return { error: 'flow_unavailable', message: 'F3 missing from flows.json.' }
+        return await runFlowImpl(
+          flowId,
+          JSON.stringify({
+            patient_id: body.patient_id,
+            followup_date: body.followup_date,
+            hotline: body.hotline,
+            f1_scored_output: body.f1_scored_output,
+          }),
+        )
+      },
+      {
+        body: t.Object({
+          patient_id: t.String({ minLength: 1 }),
+          followup_date: t.String({ pattern: ISO_DATE }),
+          hotline: t.String({ minLength: 1 }),
+          f1_scored_output: t.Object({
+            episode: t.Object({
+              diagnosis: t.String(),
+              medications: t.Array(t.String()),
+              instructions: t.Array(t.String()),
+              followup_needs: t.Array(t.String()),
+              length_of_stay_days: t.Union([t.Number(), t.Null()]),
+              admission_type: t.String(),
+              comorbidity_count: t.Union([t.Number(), t.Null()]),
+              admissions_prior_12m: t.Union([t.Number(), t.Null()]),
+            }),
+            score: t.Union([t.Number(), t.Null()]),
+            tier: t.Union([t.String(), t.Null()]),
+            risk_factors: t.Optional(t.Unknown()),
+            rationale: t.Optional(t.String()),
+            label: t.String(),
+          }),
+        }),
+      },
+    )
+
+    // F4 is a Human-In-The-Loop flow: it must run as a v2 background job that
+    // suspends at an approval gate. It is never called synchronously.
+    .post(
+      '/api/v1/reviews',
+      async ({ body }) => {
+        assertWritable()
+        const flowId = flows.f4_review_care_plan
+        if (!flowId) return { error: 'flow_unavailable', message: 'F4 missing from flows.json.' }
+        if (!startReviewJobImpl) {
+          return {
+            error: 'review_unavailable',
+            message: 'The background-job client is not configured on this server.',
+          }
+        }
+        // F4 accepts ONLY a guarded F3 DRAFT and rejects anything else with
+        // "Only a guarded synthetic F3 DRAFT may enter review".
+        return await startReviewJobImpl(flowId, body.draft, body.session_id ?? '')
+      },
+      { body: t.Object({ draft: t.String({ minLength: 1 }), session_id: t.Optional(t.String()) }) },
+    )
+
+    // F4 resume: supply the human decision exactly as the gate advertised.
+    .post(
+      '/api/v1/reviews/:jobId/resume',
+      async ({ params, body }) => {
+        assertWritable()
+        if (!resumeReviewJobImpl) {
+          return {
+            error: 'review_unavailable',
+            message: 'The background-job client is not configured on this server.',
+          }
+        }
+        return await resumeReviewJobImpl(params.jobId, {
+          request_id: body.request_id,
+          action_id: body.action_id,
+          actor: body.actor,
+          reviewer_note: body.reviewer_note,
+        })
+      },
+      {
+        params: t.Object({ jobId: t.String({ minLength: 1 }) }),
+        body: t.Object({
+          request_id: t.String({ minLength: 1 }),
+          // The gate advertises exactly these four allowed decisions.
+          action_id: t.Union([
+            t.Literal('approve'),
+            t.Literal('request_changes'),
+            t.Literal('escalate'),
+            t.Literal('fallback'),
+          ]),
+          actor: t.String({ minLength: 1 }),
+          reviewer_note: t.Optional(t.String()),
+        }),
+      },
+    )
+
+    // F5 grounded Q&A. Fail-closed in the flow: an unapproved patient_id is
+    // refused there, never here.
+    .post(
+      '/api/v1/answers',
+      async ({ body }) => {
+        assertWritable()
+        const flowId = flows.f5_answer_care_questions
+        if (!flowId) return { error: 'flow_unavailable', message: 'F5 missing from flows.json.' }
+        return await runFlowImpl(
+          flowId,
+          JSON.stringify({ patient_id: body.patient_id, query: body.query }),
+        )
+      },
+      {
+        body: t.Object({
+          patient_id: t.String({ minLength: 1 }),
+          query: t.String({ minLength: 1 }),
+        }),
+      },
     )
 
   return app

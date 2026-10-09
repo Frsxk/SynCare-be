@@ -44,9 +44,14 @@ export function loadConfig(): AppConfig {
   return {
     langflowBaseUrl: optional('LANGFLOW_BASE_URL', 'http://127.0.0.1:7860').replace(/\/$/, ''),
     langflowApiKey: required('LANGFLOW_API_KEY'),
+    // Default MUST match where F4 actually writes inside the container's bind
+    // mount: /app/langflow/langflow/syncare-review.sqlite3 maps to
+    // <repo>/data/langflow/langflow/syncare-review.sqlite3 on the host.
+    // See scripts/fix-review-db-path.ts, which repointed the flow from the
+    // /home/frxskie path baked in by the original export.
     reviewDbPath: optional(
       'SYNCARE_REVIEW_DB',
-      new URL('../data/syncare-review.sqlite3', import.meta.url).pathname,
+      new URL('../data/langflow/langflow/syncare-review.sqlite3', import.meta.url).pathname,
     ),
     consoleStateDbPath: optional(
       'SYNCARE_STATE_DB',
