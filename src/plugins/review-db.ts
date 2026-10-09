@@ -141,7 +141,7 @@ export function patientIdOf(planJson: unknown): string | null {
  */
 export class ReviewDbReader {
   private readonly db: Database;
-  private readonly closed: boolean = false;
+  private closed = false;
 
   /**
    * @param dbPath Absolute or relative path to the SQLite file.
@@ -158,7 +158,7 @@ export class ReviewDbReader {
   close(): void {
     if (!this.closed) {
       this.db.close();
-      (this as { closed: boolean }).closed = true;
+      this.closed = true;
     }
   }
 

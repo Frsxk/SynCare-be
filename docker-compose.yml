@@ -11,6 +11,10 @@ services:
     image: langflowai/langflow:1.12.3
     container_name: syncare-langflow
     restart: unless-stopped
+    # Explicit single-worker launch. `langflow run` with no flag spawns several
+    # workers (~400 MB RSS each), which exhausts this 3.6 GB host's swap and
+    # blocks the desktop/console. Undo by removing this line.
+    command: ["langflow", "run", "--workers", "1"]
     ports:
       - "${LANGFLOW_PORT:-7860}:7860"
     environment:
@@ -31,6 +35,12 @@ services:
       # first boot and the global MCP exposes their tools too.
       LANGFLOW_CREATE_STARTER_PROJECTS: "false"
       LANGFLOW_UPDATE_STARTER_PROJECTS: "false"
+      # Single worker: this host has 3.6 GB RAM with swap already saturated, and
+      # `langflow run` otherwise spawns several worker processes (~400 MB each).
+      # NOTE: LANGFLOW_WORKERS is NOT a real Langflow setting — it is accepted by
+      # the environment but silently ignored. Worker count is set via the CLI
+      # flag `--workers 1` in `command` below. See docs/memory-baseline.md.
+      LANGFLOW_RELOAD: "false"
     volumes:
       # Bind mount (not the stale named volume): this install starts from a
       # clean database so the global MCP exposes only the SynCare tools.
