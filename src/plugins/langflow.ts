@@ -153,6 +153,33 @@ export class LangflowHttpError extends Error {
   }
 }
 
+/**
+ * Thrown when Langflow cannot be reached at all — container stopped, wrong
+ * port, DNS failure, connection refused.
+ *
+ * This is distinct from LangflowHttpError (Langflow answered, with an error
+ * status) and from LangflowTimeoutError (it did not answer in time). It maps to
+ * 503 so a frontend can tell "the clinical engine is down, retry later" apart
+ * from "your request was wrong" — a bare TypeError from fetch would otherwise
+ * surface as an opaque 500.
+ */
+export class LangflowUnreachableError extends Error {
+  readonly endpoint: string
+  /** The underlying transport error. Named `reason` so it does not shadow
+   *  Error.cause, which is a real (and differently typed) member. */
+  readonly reason: unknown
+
+  constructor(endpoint: string, reason: unknown) {
+    super(
+      `Langflow is unreachable at ${endpoint}. It is the clinical engine and must be ` +
+        `running for F1-F5. Start it with: docker compose up -d langflow`,
+    )
+    this.name = 'LangflowUnreachableError'
+    this.endpoint = endpoint
+    this.reason = reason
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Client
 // ---------------------------------------------------------------------------
@@ -211,8 +238,11 @@ async function doFetch(
     if (err instanceof Error && (err.name === 'AbortError' || controller.signal.aborted)) {
       throw new LangflowTimeoutError(timeoutMs, `${method} ${url}`)
     }
-    // Other transport errors (DNS, connection refused) — rethrow without key.
-    throw err
+    // Other transport errors (DNS, connection refused, container stopped).
+    // These arrive as a bare TypeError from fetch. Rethrowing it raw made every
+    // downstream failure look like an opaque 500, so it is wrapped into a
+    // typed error that maps to 503 "clinical engine unavailable".
+    throw new LangflowUnreachableError(`${method} ${url}`, err)
   } finally {
     clearTimeout(timer)
   }

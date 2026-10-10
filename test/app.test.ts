@@ -152,6 +152,120 @@ describe('flow proxy', () => {
   })
 })
 
+describe('Langflow unavailable', () => {
+  /**
+   * Langflow is the clinical engine. When it is down the request cannot be
+   * served, and the frontend must be able to tell "the engine is down, retry"
+   * apart from "your input was wrong". This shipped as an opaque 500 before
+   * LangflowUnreachableError existed, because fetch rejects with a bare
+   * TypeError that matched no branch in the error handler.
+   */
+  const refused = () => {
+    // Exactly what Bun's fetch throws on connection refused.
+    const err = new TypeError('fetch failed')
+    return (async () => {
+      throw err
+    }) as never
+  }
+
+  test('runFlow wraps a transport failure into LangflowUnreachableError', async () => {
+    // Tested at the CLIENT layer, not by injecting a throwing runFlowImpl: the
+    // wrapping happens inside doFetch, so stubbing the caller would bypass the
+    // very code path that is being fixed.
+    const { LangflowUnreachableError, runFlow: realRunFlow } = await import('../src/plugins/langflow.ts')
+    const prevKey = process.env.LANGFLOW_API_KEY
+    const prevBase = process.env.LANGFLOW_BASE_URL
+    process.env.LANGFLOW_API_KEY = 'test-key'
+    // Port 1 is reserved and never listening -> connection refused.
+    process.env.LANGFLOW_BASE_URL = 'http://127.0.0.1:1'
+    try {
+      let thrown: unknown
+      try {
+        await realRunFlow('11111111-1111-1111-1111-111111111111', 'x', {
+          fetchImpl: (() => Promise.reject(new TypeError('fetch failed'))) as never,
+        })
+      } catch (e) {
+        thrown = e
+      }
+      expect(thrown).toBeInstanceOf(LangflowUnreachableError)
+      expect((thrown as Error).message).toContain('docker compose up -d langflow')
+    } finally {
+      if (prevKey === undefined) delete process.env.LANGFLOW_API_KEY
+      else process.env.LANGFLOW_API_KEY = prevKey
+      if (prevBase === undefined) delete process.env.LANGFLOW_BASE_URL
+      else process.env.LANGFLOW_BASE_URL = prevBase
+    }
+  })
+
+  test('the error handler maps it to 503 langflow_unreachable', async () => {
+    // The handler only discriminates on the typed error, so inject exactly that
+    // -- reproducing the post-doFetch state rather than a bare TypeError.
+    const { LangflowUnreachableError } = await import('../src/plugins/langflow.ts')
+    const app = createApp({
+      config: baseConfig(),
+      flows: FLOWS,
+      runFlowImpl: (async () => {
+        throw new LangflowUnreachableError('POST http://127.0.0.1:7860/api/v1/run/x', new TypeError('fetch failed'))
+      }) as never,
+    })
+    const res = await app.handle(
+      authed('/api/v1/checkins', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ input_value: 'merasa lebih baik' }),
+      }),
+    )
+    expect(res.status).toBe(503)
+    const body = (await res.json()) as Record<string, unknown>
+    expect(body.error).toBe('langflow_unreachable')
+    // The message must tell the operator how to fix it.
+    expect(String(body.message)).toContain('docker compose up -d langflow')
+  })
+
+  test('the 503 body never leaks the Langflow API key', async () => {
+    const { LangflowUnreachableError } = await import('../src/plugins/langflow.ts')
+    const app = createApp({
+      config: baseConfig({ langflowApiKey: 'super-secret-langflow-key' }),
+      flows: FLOWS,
+      runFlowImpl: (async () => {
+        throw new LangflowUnreachableError('POST http://127.0.0.1:7860/run', new TypeError('fetch failed'))
+      }) as never,
+    })
+    const res = await app.handle(
+      authed('/api/v1/checkins', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ input_value: 'x' }),
+      }),
+    )
+    expect(res.status).toBe(503)
+    expect(await res.text()).not.toContain('super-secret-langflow-key')
+  })
+
+  test('reads still work while Langflow is down (they never touch it)', async () => {
+    const fixture = createFixtureDb()
+    const app = createApp({
+      config: baseConfig({ reviewDbPath: fixture.path, langflowBaseUrl: 'http://127.0.0.1:59999' }),
+      flows: FLOWS,
+      runFlowImpl: refused(),
+    })
+    // /api/health still answers, and honestly reports the engine as down.
+    const health = await app.handle(authed('/api/health'))
+    expect(health.status).toBe(200)
+    const hb = (await health.json()) as { langflow: string }
+    expect(hb.langflow).toBe('unreachable')
+
+    // Plan reads are pure SQLite, so they keep working.
+    const plans = await app.handle(authed('/api/v1/plans'))
+    expect(plans.status).toBe(200)
+    expect(((await plans.json()) as { plans: unknown[] }).plans.length).toBeGreaterThan(0)
+
+    const flows = await app.handle(authed('/api/v1/flows'))
+    expect(flows.status).toBe(200)
+    fixture.cleanup()
+  })
+})
+
 describe('plans (read-only view of flow-written state)', () => {
   test('503 when the review DB does not exist yet', async () => {
     const app = createApp({ config: baseConfig(), flows: FLOWS })

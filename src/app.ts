@@ -17,6 +17,7 @@ import { ReviewDbReader } from './plugins/review-db.ts'
 import {
   LangflowHttpError,
   LangflowTimeoutError,
+  LangflowUnreachableError,
   resumeReviewJob,
   runFlow,
   startReviewJob,
@@ -144,6 +145,15 @@ export function createApp(deps: AppDeps = {}) {
           default:
             if (c.error instanceof LangflowTimeoutError) {
               return c.status(503, { error: 'langflow_timeout', message: c.error.message })
+            }
+            // Langflow is the clinical engine. If it is down the request cannot
+            // be served at all, and a frontend must be able to tell that apart
+            // from its own bad input -- hence 503, not 500.
+            if (c.error instanceof LangflowUnreachableError) {
+              return c.status(503, {
+                error: 'langflow_unreachable',
+                message: c.error.message,
+              })
             }
             if (c.error instanceof LangflowHttpError) {
               return c.status(502, { error: 'langflow_http_error', message: c.error.message })
@@ -371,8 +381,16 @@ export function createApp(deps: AppDeps = {}) {
     .get('/api/v1/reviews/:jobId/events', async ({ params, set }) => {
       const stream = await streamReviewEventsImpl(params.jobId)
       if (!stream) {
+        // Ambiguous by nature: either Langflow is down, or this job id is
+        // unknown/expired. Say so, and point at the one check that separates
+        // them, rather than implying the stream alone is the problem.
         set.status = 502
-        return { error: 'events_unavailable', message: 'Could not open the job event stream.' }
+        return {
+          error: 'events_unavailable',
+          message:
+            'Could not open the job event stream. Either Langflow is unreachable or this ' +
+            'job id is unknown or already finished. Check /api/health first.',
+        }
       }
       return stream
     })

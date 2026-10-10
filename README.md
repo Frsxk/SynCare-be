@@ -49,6 +49,11 @@ SynCare-fe (separate repo)
 
 ## API
 
+> **Langflow must be running.** It is the clinical engine; this backend cannot
+> serve F1–F5 without it. Only these routes work while it is down:
+> `/api/health`, `/api/v1/flows`, `/api/v1/plans`, `/api/v1/plans/:patientId`
+> — they read local SQLite and `flows.json` only.
+
 Base URL in production: `https://syncare.trackover.web.id`
 
 Every `/api/*` route requires `Authorization: Bearer <SYNCARE_API_KEY>`.
@@ -79,7 +84,9 @@ softens what a flow emitted.
 | `403` | Read-only mode blocked a mutating route |
 | `404` | No such route — also returned for unknown `/api` paths **before** auth, so the surface cannot be mapped anonymously |
 | `422` | Body failed schema validation |
-| `502` / `503` | Langflow error / timeout, or server not fully configured |
+| `502` | Could not open the F4 event stream (Langflow down, or stale job id) |
+| `503` | `langflow_unreachable` / `langflow_timeout` — the clinical engine is down or slow; retry |
+| `503` | `auth_not_configured` — the server has no `SYNCARE_API_KEY` |
 
 ---
 
