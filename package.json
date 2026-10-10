@@ -10,8 +10,7 @@
     "test": "bun test",
     "import:flows": "bun scripts/import-flows.ts",
     "discover:flows": "bun scripts/discover-flows.ts",
-    "verify:secrets": "bash scripts/verify-secrets.sh",
-    "check:ui": "bash scripts/check-ui-js.sh"
+    "verify:secrets": "bash scripts/verify-secrets.sh"
   },
   "dependencies": {
     "elysia": "^1.4.30"

@@ -79,8 +79,10 @@ export function createApp(deps: AppDeps = {}) {
      * evaluated for routes that 404, so an unauthenticated caller cannot probe
      * which endpoints exist.
      *
-     * `/` and `/healthz` stay open on purpose: the UI shell is static and the
-     * health probe is a liveness check. Neither returns patient data.
+     * This server serves NOTHING but the API. `/` returns a plain 404 and no
+     * HTML is shipped from this repo -- the frontend is a separate application
+     * that consumes these routes. `/api/health` sits behind the gate like every
+     * other API route.
      */
     .onBeforeHandle(({ request, set, path }) => {
       if (!path.startsWith('/api/')) return
@@ -150,11 +152,7 @@ export function createApp(deps: AppDeps = {}) {
         }
       }) as never)
 
-    .get('/', () => new Response(readFileSync(join(import.meta.dir, '..', 'public', 'index.html')), {
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
-    }))
-
-    .get('/healthz', async ({ set }) => {
+    .get('/api/health', async ({ set }) => {
       let langflow: 'reachable' | 'unreachable' = 'unreachable'
       try {
         const res = await fetch(`${config.langflowBaseUrl}/health`, { signal: AbortSignal.timeout(4000) })

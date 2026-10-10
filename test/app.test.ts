@@ -52,10 +52,10 @@ describe('config validation', () => {
   })
 })
 
-describe('/healthz', () => {
+describe('/api/health', () => {
   test('reports langflow unreachable instead of crashing', async () => {
     const app = createApp({ config: baseConfig(), flows: FLOWS })
-    const res = await app.handle(new Request('http://localhost/healthz'))
+    const res = await app.handle(authed('/api/health'))
     expect(res.status).toBe(200)
     const body = (await res.json()) as Record<string, unknown>
     expect(body.status).toBe('ok')
@@ -69,7 +69,7 @@ describe('/healthz', () => {
       config: baseConfig(),
       flows: { f1_register_discharge_summary: 'not-a-uuid' },
     })
-    const res = await app.handle(new Request('http://localhost/healthz'))
+    const res = await app.handle(authed('/api/health'))
     const body = (await res.json()) as Record<string, unknown>
     expect(body.manifestComplete).toBe(false)
     expect(body.missingFlows).toEqual(['f1_register_discharge_summary'])
@@ -305,10 +305,20 @@ describe('bearer authentication', () => {
     expect(res.status).toBe(401)
   })
 
-  test('health and the UI shell stay open (they leak no patient data)', async () => {
+  test('/api/health is itself gated (this server exposes only the API)', async () => {
     const app = createApp({ config: baseConfig(), flows: FLOWS })
-    expect((await app.handle(new Request('http://localhost/healthz'))).status).toBe(200)
-    expect((await app.handle(new Request('http://localhost/'))).status).toBe(200)
+    expect((await app.handle(new Request('http://localhost/api/health'))).status).toBe(401)
+    expect((await app.handle(authed('/api/health'))).status).toBe(200)
+  })
+
+  test('/ returns a plain 404 and no HTML (the frontend is a separate app)', async () => {
+    const app = createApp({ config: baseConfig(), flows: FLOWS })
+    for (const p of ['/', '/index.html', '/app', '/login']) {
+      const res = await app.handle(new Request(`http://localhost${p}`))
+      expect(`${p} -> ${res.status}`).toBe(`${p} -> 404`)
+      // Nothing HTML may be served from this repo at all.
+      expect(res.headers.get('content-type') ?? '').not.toContain('text/html')
+    }
   })
 
   test('no error response ever echoes the expected token back', async () => {

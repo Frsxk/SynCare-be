@@ -1,6 +1,11 @@
 # SynCare Console — Operations Runbook
 
 Public URL: <https://syncare.trackover.web.id>
+
+> This backend serves **only** `/api/*`. There is no HTML at `/` -- the
+> frontend is a separate application (SynCare-fe) that consumes these routes.
+> Every `/api` route, including `/api/health`, requires
+> `Authorization: Bearer <token>`.
 Backend: Elysia on Bun, thin proxy over Langflow. Langflow owns all clinical logic.
 
 ---
@@ -80,14 +85,15 @@ curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $SYNCARE_API_
 
 | Check | Command | Healthy |
 |---|---|---|
-| Console | `curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/healthz` | `200` |
+| Console | `curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $SYNCARE_API_KEY" http://127.0.0.1:8080/api/health` | `200` |
 | Langflow | `curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:7860/health` | `200` |
 | Public API rejects anonymous | `curl -s -o /dev/null -w '%{http_code}' https://syncare.trackover.web.id/api/v1/plans` | `401` |
 | Port binding | `ss -ltn \| grep :8080` | `127.0.0.1:8080` only |
 | Restart loop | `systemctl --user show syncare-console.service -p NRestarts` | not climbing |
 
-`/healthz` is intentionally public and unauthenticated: it returns liveness and
-manifest status, and no patient data.
+``/api/health` requires the bearer token like every other route (the console
+serves only the API; `/` is a plain 404). It returns liveness and manifest
+status, and no patient data.
 
 ---
 

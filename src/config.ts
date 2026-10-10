@@ -37,7 +37,7 @@ export interface AppConfig {
   /**
    * Bearer token required on every /api/v1 route. Deliberately NOT required()
    * at startup: a missing value must LOCK the API rather than crash the
-   * process, so /healthz stays reachable for diagnosis while /api stays shut.
+   * process, so the operator can read the startup error while /api stays shut.
    * An empty string here means "no token configured" -> every API call 401s.
    */
   apiKey: string

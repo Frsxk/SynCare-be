@@ -10,7 +10,9 @@ syncare.trackover.web.id {
 	# NO basic_auth here, by explicit operator decision: the Elysia backend
 	# authenticates with a bearer token, and stacking Basic Auth on top would
 	# add a browser credential prompt for every API call the frontend makes.
-	# The API gate is fail-closed (see src/auth.ts); /healthz and / stay open.
+	# The API gate is fail-closed (see src/auth.ts). This backend serves ONLY
+	# /api/* routes and answers everything else with 404; the frontend is a
+	# separate application and is served elsewhere.
 
 	# SSE (F4 approval events) must not be buffered or the human reviewer
 	# receives the whole stream at once instead of live.
