@@ -34,6 +34,13 @@ export interface AppConfig {
   host: string
   port: number
   readOnly: boolean
+  /**
+   * Bearer token required on every /api/v1 route. Deliberately NOT required()
+   * at startup: a missing value must LOCK the API rather than crash the
+   * process, so /healthz stays reachable for diagnosis while /api stays shut.
+   * An empty string here means "no token configured" -> every API call 401s.
+   */
+  apiKey: string
 }
 
 /**
@@ -60,6 +67,7 @@ export function loadConfig(): AppConfig {
     host: optional('SYNCARE_HOST', '127.0.0.1'),
     port: Number(optional('SYNCARE_PORT', '8080')),
     readOnly: flag('SYNCARE_READ_ONLY', false),
+    apiKey: optional('SYNCARE_API_KEY', ''),
   }
 }
 

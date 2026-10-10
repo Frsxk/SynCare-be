@@ -11,6 +11,7 @@
 import { Elysia, t } from 'elysia'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { AuthError, AuthNotConfiguredError, extractBearer, tokensMatch } from './auth.ts'
 import { DISCLAIMER, type AppConfig, loadConfig } from './config.ts'
 import { ReviewDbReader } from './plugins/review-db.ts'
 import {
@@ -39,6 +40,8 @@ export interface AppDeps {
   /** F4 must run as a v2 background job, so it gets its own client entry points. */
   startReviewJobImpl?: typeof startReviewJob
   resumeReviewJobImpl?: typeof resumeReviewJob
+  /** Injected so the SSE route can be tested without a live Langflow job. */
+  streamReviewEventsImpl?: typeof streamReviewEvents
   flows?: FlowMap
 }
 
@@ -57,6 +60,7 @@ export function createApp(deps: AppDeps = {}) {
   const runFlowImpl = deps.runFlowImpl ?? runFlow
   const startReviewJobImpl = deps.startReviewJobImpl ?? startReviewJob
   const resumeReviewJobImpl = deps.resumeReviewJobImpl ?? resumeReviewJob
+  const streamReviewEventsImpl = deps.streamReviewEventsImpl ?? streamReviewEvents
 
   /** Central guard: read-only mode blocks every state-changing verb. */
   const assertWritable = () => {
@@ -64,7 +68,37 @@ export function createApp(deps: AppDeps = {}) {
   }
 
   const app = new Elysia({ name: 'syncare-console' })
-      .error({ READ_ONLY: ReadOnlyViolation })
+
+    /**
+     * BEARER GATE for every /api route.
+     *
+     * Registered as app-level `onBeforeHandle` BEFORE any route is declared, so
+     * it applies to every /api route including ones added later -- a new
+     * clinical route cannot escape it by forgetting to add a line. Matching on
+     * the path prefix (rather than a plugin scope) also means the gate is
+     * evaluated for routes that 404, so an unauthenticated caller cannot probe
+     * which endpoints exist.
+     *
+     * `/` and `/healthz` stay open on purpose: the UI shell is static and the
+     * health probe is a liveness check. Neither returns patient data.
+     */
+    .onBeforeHandle(({ request, set, path }) => {
+      if (!path.startsWith('/api/')) return
+      // Fail CLOSED: no configured token means no access. There is no branch
+      // that treats a missing token as "allow".
+      if (config.apiKey === '') throw new AuthNotConfiguredError()
+      const presented = extractBearer(request.headers.get('authorization'))
+      if (presented === null || !tokensMatch(presented, config.apiKey)) {
+        // RFC 6750 §3: a 401 SHOULD carry a WWW-Authenticate challenge; without
+        // it some clients silently retry. Set before throwing because an
+        // onError `status()` response is built fresh and would otherwise drop
+        // any header assigned to `set` on the way out.
+        set.headers['WWW-Authenticate'] = 'Bearer realm="syncare"'
+        throw new AuthError()
+      }
+    })
+
+    .error({ READ_ONLY: ReadOnlyViolation, AUTH: AuthError, AUTH_NOT_CONFIGURED: AuthNotConfiguredError })
       // An onError registered for a code NAME is a CATCH-ALL for every error in
       // scope, so it must discriminate on ctx.code and default to 500. Without a
       // default branch, an unrelated TypeError would inherit a misleading status.
@@ -76,11 +110,31 @@ export function createApp(deps: AppDeps = {}) {
         const c = ctx as unknown as {
           code: string
           error: unknown
+          set: { headers: Record<string, string> }
           status: (n: number, body: unknown) => Response
         }
         switch (c.code) {
           case 'READ_ONLY':
             return c.status(403, { error: 'read_only_mode', message: 'This console is in read-only mode.' })
+          case 'AUTH':
+            // The challenge header must be attached HERE, on the response that
+            // is actually returned. Assigning it to `set.headers` inside the
+            // guard is discarded, because onError's `status()` constructs a new
+            // Response rather than reusing the one the handler was mutating.
+            c.set.headers['WWW-Authenticate'] = 'Bearer realm="syncare"'
+            return c.status(401, {
+              error: 'unauthorized',
+              message: (c.error as Error).message,
+              hint: 'Send "Authorization: Bearer <token>".',
+            })
+          case 'AUTH_NOT_CONFIGURED':
+            // 503, not 401: the CLIENT is not at fault, the server is. This
+            // distinguishes "your token is wrong" from "the server forgot to
+            // set one" so the operator debugs the right machine.
+            return c.status(503, {
+              error: 'auth_not_configured',
+              message: 'The server has no API token configured. The API is locked.',
+            })
           case 'VALIDATION':
             return c.status(422, { error: 'validation', message: 'Request failed schema validation.' })
           case 'NOT_FOUND':
@@ -168,8 +222,28 @@ export function createApp(deps: AppDeps = {}) {
 
     .get('/api/v1/flows', () => ({ flows }))
 
-    // ── Thin proxy to Langflow (the flow decides everything) ──────────────
+    /**
+     * Catch-all for unmatched /api paths.
+     *
+     * Elysia does NOT run app-level `onBeforeHandle` for a route that does not
+     * match, so without this an anonymous caller could map the API surface for
+     * free by distinguishing 404 (route absent) from 401 (route present). The
+     * gate is re-applied here so an unknown /api path answers exactly like a
+     * known one. Non-/api paths still fall through to Elysia's normal 404.
+     */
+    .all('/api/*', async ({ request, set }) => {
+      if (config.apiKey === '') throw new AuthNotConfiguredError()
+      const presented = extractBearer(request.headers.get('authorization'))
+      if (presented === null || !tokensMatch(presented, config.apiKey)) {
+        set.headers['WWW-Authenticate'] = 'Bearer realm="syncare"'
+        throw new AuthError()
+      }
+      // Authenticated but genuinely absent: only now is a 404 honest.
+      set.status = 404
+      return { error: 'not_found', message: 'No such route.' }
+    })
 
+    // ── Thin proxy to Langflow (the flow decides everything) ──────────────
     .post(
       '/api/v1/discharge',
       async ({ body }) => {
@@ -297,7 +371,7 @@ export function createApp(deps: AppDeps = {}) {
     // The browser cannot call Langflow directly (the API key must stay
     // server-side), so the console streams the SSE event feed through here.
     .get('/api/v1/reviews/:jobId/events', async ({ params, set }) => {
-      const stream = await streamReviewEvents(params.jobId)
+      const stream = await streamReviewEventsImpl(params.jobId)
       if (!stream) {
         set.status = 502
         return { error: 'events_unavailable', message: 'Could not open the job event stream.' }
