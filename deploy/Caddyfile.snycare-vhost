@@ -1,18 +1,13 @@
 
 syncare.trackover.web.id {
-	# Same 1:1 NAT arrangement as hermes.frxskie.me: public traffic
-	# (129.226.201.207) is NATed to the LAN IP 10.3.8.40. Binding only the LAN
-	# IP keeps Caddy off tailscaled's tailnet 100.89.55.94:443.
+	# Public traffic (129.226.201.207) is NATed to the LAN IP 10.3.8.40. Bind the LAN IP
+	# only so Caddy stays off tailscaled's 100.89.55.94:443.
 	bind 10.3.8.40
 
 	encode zstd gzip
 
-	# NO basic_auth here, by explicit operator decision: the Elysia backend
-	# authenticates with a bearer token, and stacking Basic Auth on top would
-	# add a browser credential prompt for every API call the frontend makes.
-	# The API gate is fail-closed (see src/auth.ts). This backend serves ONLY
-	# /api/* routes and answers everything else with 404; the frontend is a
-	# separate application and is served elsewhere.
+	# No basic_auth: the Elysia backend uses a bearer token, and stacking Basic Auth
+	# would add a browser prompt to every API call. Fail-closed gate: src/auth.ts.
 
 	# SSE (F4 approval events) must not be buffered or the human reviewer
 	# receives the whole stream at once instead of live.

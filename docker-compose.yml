@@ -1,24 +1,18 @@
-# SynCare backend — Langflow service.
-#
-# Langflow owns ALL clinical logic (scoring, tiering, red-flag escalation, plan
-# drafting, human approval, Astra RAG). The Elysia console is a thin proxy that
-# never re-implements any of it.
-#
-# Secrets come from .env (gitignored). Never commit real values here.
+# SynCare backend: Langflow service.
+# Langflow owns all clinical logic; the Elysia console is a thin proxy.
 
 services:
   langflow:
     image: langflowai/langflow:1.12.3
     container_name: syncare-langflow
     restart: unless-stopped
-    # Explicit single-worker launch. `langflow run` with no flag spawns several
-    # workers (~400 MB RSS each), which exhausts this 3.6 GB host's swap and
-    # blocks the desktop/console. Undo by removing this line.
+    # Single worker: `langflow run` otherwise spawns several workers (~400 MB each),
+    # which exhausts this 3.6 GB host's swap.
     command: ["langflow", "run", "--workers", "1"]
     ports:
       - "${LANGFLOW_PORT:-7860}:7860"
     environment:
-      # Fresh credentials — generated per install, never reused.
+      # Fresh credentials, generated per install and never reused.
       LANGFLOW_SUPERUSER: "${LANGFLOW_SUPERUSER:?set LANGFLOW_SUPERUSER in .env}"
       LANGFLOW_SUPERUSER_PASSWORD: "${LANGFLOW_SUPERUSER_PASSWORD:?set LANGFLOW_SUPERUSER_PASSWORD in .env}"
       # Encrypts global Variables (Gemini / Astra). Lose it and stored
@@ -31,20 +25,15 @@ services:
       LANGFLOW_CONFIG_DIR: "/app/langflow/.cache/langflow"
       # Custom components read fixture files from disk.
       LANGFLOW_RESTRICT_LOCAL_FILE_ACCESS: "false"
-      # The Gemini component validates its key against the process environment
-      # ("set GOOGLE_API_KEY/GEMINI_API_KEY"), which takes precedence over the
-      # redacted per-node field. Injected from the gitignored .env at compose-up
-      # time; never committed. A global Variable alone is NOT sufficient.
+      # The Gemini component reads GEMINI_API_KEY from the process environment; a
+      # global Variable alone is not sufficient. Injected from .env, never committed.
       GEMINI_API_KEY: "${GEMINI_API_KEY:?set GEMINI_API_KEY in .env}"
       # Clean MCP surface: without this, Langflow seeds 26 starter projects on
       # first boot and the global MCP exposes their tools too.
       LANGFLOW_CREATE_STARTER_PROJECTS: "false"
       LANGFLOW_UPDATE_STARTER_PROJECTS: "false"
-      # Single worker: this host has 3.6 GB RAM with swap already saturated, and
-      # `langflow run` otherwise spawns several worker processes (~400 MB each).
-      # NOTE: LANGFLOW_WORKERS is NOT a real Langflow setting — it is accepted by
-      # the environment but silently ignored. Worker count is set via the CLI
-      # flag `--workers 1` in `command` below. See docs/memory-baseline.md.
+      # LANGFLOW_WORKERS is not a real setting; worker count comes from the CLI flag above.
+      # Host memory baseline: docs/memory-baseline.md.
       LANGFLOW_RELOAD: "false"
     volumes:
       # Bind mount (not the stale named volume): this install starts from a

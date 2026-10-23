@@ -1,9 +1,9 @@
-# Secrets — never commit
+# Secrets: never commit
 .env
 .env.local
 *.pem
 
-# Runtime data — databases, Langflow state
+# Runtime data: databases, Langflow state
 data/
 *.sqlite3
 *.sqlite3-journal

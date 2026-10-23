@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "SynCare backend \u2014 Langflow 1.12.3 (clinical logic) + Elysia console (thin proxy)",
+  "description": "SynCare backend: Langflow 1.12.3 (clinical logic) + Elysia console (thin proxy)",
   "scripts": {
     "start": "bun run src/index.ts",
     "dev": "bun --watch src/index.ts",
