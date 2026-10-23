@@ -12,9 +12,9 @@ Measured 2026-10-09 on the SynCare backend host (2 vCPU, 3.6 GB RAM + 1.9 GB swa
 | Metric | Value |
 |---|---|
 | Host RAM total | 3640 MB |
-| Container memory at idle (warm) | ~811–1195 MiB |
+| Container memory at idle (warm) | ~811-1195 MiB |
 | **Host free memory at rest** | **116 MB** |
-| **Swap at rest** | **1.9 GB of 1.9 GB used — exhausted** |
+| **Swap at rest** | **1.9 GB of 1.9 GB used; exhausted** |
 | Container restarts during the run | 0 |
 | OOMKilled flag | false |
 
@@ -24,7 +24,7 @@ The first run produced no sample rows: the sampler's subshell was terminated alo
 with the timed-out parent command, and `/tmp/syncare-mem-samples.txt` was empty.
 **This baseline is therefore incomplete and the peak figure is not yet trustworthy.**
 
-## Interpretation — and why no cap was applied
+## Interpretation and why no cap was applied
 
 `restart: unless-stopped` plus `OOMKilled=false` shows Langflow was **not** killed.
 But swap being fully consumed while ~800 MB of container RSS is reported means the
@@ -43,7 +43,7 @@ Therefore, per the plan's decision gate:
 The F1 pipeline executes correctly up to its Gemini node. Live response:
 
 ```
-HTTP 500 — Error building Component Google Generative AI:
+HTTP 500: Error building Component Google Generative AI:
 Value error, API key required for Gemini Developer API.
 Provide api_key parameter or set GOOGLE_API_KEY/GEMINI_API_KEY environment variable.
 model: 'gemini-3.5-flash-lite'

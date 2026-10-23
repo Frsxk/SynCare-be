@@ -1,8 +1,8 @@
-# SynCare Console — Operations Runbook
+# SynCare Console: Operations Runbook
 
 Public URL: <https://syncare.trackover.web.id>
 
-> This backend serves **only** `/api/*`. There is no HTML at `/` -- the
+> This backend serves **only** `/api/*`. There is no HTML at `/`; the
 > frontend is a separate application (SynCare-fe) that consumes these routes.
 > Every `/api` route, including `/api/health`, requires
 > `Authorization: Bearer <token>`.
@@ -12,7 +12,7 @@ Backend: Elysia on Bun, thin proxy over Langflow. Langflow owns all clinical log
 
 ## systemd unit name
 
-**`syncare-console.service`** (a *user* unit — no `sudo` needed).
+**`syncare-console.service`** (a *user* unit, no `sudo` needed).
 
 ```bash
 systemctl --user status  syncare-console.service   # is it up?
@@ -40,7 +40,7 @@ journalctl --user -u syncare-console.service --since -10m  # recent
 cd ~/kittys-workspace/syncare-be && docker compose stop langflow
 ```
 
-With the console stopped, `https://syncare.trackover.web.id` returns **502** —
+With the console stopped, `https://syncare.trackover.web.id` returns **502**;
 Caddy is still up and serving other domains (notably `hermes.frxkie.me`).
 
 ---
@@ -91,7 +91,7 @@ curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $SYNCARE_API_
 | Port binding | `ss -ltn \| grep :8080` | `127.0.0.1:8080` only |
 | Restart loop | `systemctl --user show syncare-console.service -p NRestarts` | not climbing |
 
-``/api/health` requires the bearer token like every other route (the console
+`/api/health` requires the bearer token like every other route (the console
 serves only the API; `/` is a plain 404). It returns liveness and manifest
 status, and no patient data.
 
@@ -100,7 +100,7 @@ status, and no patient data.
 ## Read-only mode
 
 For a demo where nobody may approve a plan, stop the unit and restart it with
-read-only mode. Writes return `403`; reads and F1–F3 still work.
+read-only mode. Writes return `403`; reads and F1-F3 still work.
 
 ```bash
 systemctl --user stop syncare-console.service

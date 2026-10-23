@@ -1,4 +1,4 @@
-# Live Flow Verification — SynCare-be (cat tree)
+# Live Flow Verification: SynCare-be (cat tree)
 
 **Date:** 2026-10-09 · **Langflow:** 1.12.3 (Docker) · **All runs: synthetic data only**
 
@@ -7,7 +7,7 @@ the terminal output is quoted verbatim from the run.
 
 ---
 
-## F1 — register_discharge_summary
+## F1: register_discharge_summary
 
 ```
 http=200  elapsed=1s
@@ -17,10 +17,10 @@ episode keys: admission_type, admissions_prior_12m, comorbidity_count, diagnosis
 ```
 
 Gemini extracted the episode; the deterministic scorer assigned the tier. Score
-changed from 0 → 4 once hospitalisation/comorbidity facts were supplied, which
+changed from 0 to 4 once hospitalisation/comorbidity facts were supplied, which
 confirms scoring is deterministic and not model-generated.
 
-## F2 — record_patient_checkin
+## F2: record_patient_checkin
 
 Routine:
 ```
@@ -37,7 +37,7 @@ http=200  elapsed=2s
 {"action": "escalate_immediately", "reason": "Nyeri dada berat"}
 ```
 
-## F3 — draft_followup_plan
+## F3: draft_followup_plan
 
 Consumes F1's scored output wrapped in the guard's required envelope:
 ```
@@ -49,10 +49,10 @@ satuseshat keys: careplan, servicerequest, task
 ```
 
 **Fail-closed behaviour verified.** With `followup_date` / `hotline` withheld it
-returned `missing_facts: ['followup_date', 'hotline']` and refused to generate —
+returned `missing_facts: ['followup_date', 'hotline']` and refused to generate;
 it will not invent a follow-up date.
 
-## F4 — review_care_plan (human gate)
+## F4: review_care_plan (human gate)
 
 ```
 1. POST /api/v2/workflows (mode=background)
@@ -84,7 +84,7 @@ The identical timestamps prove plan + audit were written in the same transaction
 `plan_json.status` staying `DRAFT` after approval is why the console must derive
 approval from **table membership**, never from the status string.
 
-## F5 — answer_care_questions (Astra RAG)
+## F5: answer_care_questions (Astra RAG)
 
 Approved patient:
 ```
@@ -120,7 +120,7 @@ disclaimer, and Chroma persisted a real per-patient collection
    so F4 died with `Permission denied` *before reaching the human gate*.
 3. **F5 had the same bug twice over.** `db_path` plus `protocol_directory` and
    `persist_directory`. Patching the module-level `DEFAULT_*` constants was not
-   enough — the node template fields override them, and the real field names are
+   enough: the node template fields override them, and the real field names are
    `protocol_directory` / `persist_directory` (not `protocol_dir` / `persist_dir`).
 4. **Component code is cached.** PATCHing a flow's Python code has no effect until
    Langflow restarts (`--force-recreate`, since `restart` does not re-read env).

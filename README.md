@@ -1,6 +1,6 @@
 # SynCare-be
 
-Backend for **SynCare** — post-discharge care orchestration for CHF patients
+Backend for **SynCare**: post-discharge care orchestration for CHF patients
 in Indonesian hospitals. Built for the Hacktiv8 x IBM hackathon.
 
 **Langflow owns every clinical decision.** This backend is a thin, bearer-token
@@ -33,7 +33,7 @@ SynCare-fe (separate repo)
 - **This app** forwards requests verbatim and reads the review DB with
   `readonly: true`. It has no write path to clinical state at all.
 - **F4 is the only writer** of `approved_plans` and `audit_log`.
-- **F5 fails closed**: no approval means no answer.
+- F5 fails closed: no approval means no answer.
 
 ### The five flows
 
@@ -50,14 +50,14 @@ SynCare-fe (separate repo)
 ## API
 
 > **Langflow must be running.** It is the clinical engine; this backend cannot
-> serve F1–F5 without it. Only these routes work while it is down:
-> `/api/health`, `/api/v1/flows`, `/api/v1/plans`, `/api/v1/plans/:patientId`
-> — they read local SQLite and `flows.json` only.
+> serve F1-F5 without it. Only these routes work while it is down:
+> `/api/health`, `/api/v1/flows`, `/api/v1/plans`, `/api/v1/plans/:patientId`.
+> They read local SQLite and `flows.json` only.
 
 Base URL in production: `https://syncare.trackover.web.id`
 
 Every `/api/*` route requires `Authorization: Bearer <SYNCARE_API_KEY>`.
-`/` and all other paths return `404` — this service serves no HTML.
+`/` and all other paths return `404`; this service serves no HTML.
 
 | Method | Path | Notes |
 |---|---|---|
@@ -82,15 +82,15 @@ softens what a flow emitted.
 |---|---|
 | `401` | Missing or wrong bearer token (`WWW-Authenticate: Bearer`) |
 | `403` | Read-only mode blocked a mutating route |
-| `404` | No such route — also returned for unknown `/api` paths **before** auth, so the surface cannot be mapped anonymously |
+| `404` | No such route; also returned for unknown `/api` paths **before** auth, so the surface cannot be mapped anonymously |
 | `422` | Body failed schema validation |
 | `502` | Could not open the F4 event stream (Langflow down, or stale job id) |
-| `503` | `langflow_unreachable` / `langflow_timeout` — the clinical engine is down or slow; retry |
-| `503` | `auth_not_configured` — the server has no `SYNCARE_API_KEY` |
+| `503` | `langflow_unreachable` / `langflow_timeout`: the clinical engine is down or slow; retry |
+| `503` | `auth_not_configured`: the server has no `SYNCARE_API_KEY` |
 
 ---
 
-## ⚠️ Notes for SynCare-fe
+## Notes for SynCare-fe
 
 **1. Never call Langflow directly.** Its API key lives server-side here on
 purpose. The frontend talks only to this backend.
@@ -139,7 +139,7 @@ bash scripts/bring-up-langflow.sh
 ### Checks
 
 ```bash
-bun test                  # 62 tests
+bun test                  # 66 tests
 bunx tsc --noEmit         # typecheck
 bash scripts/verify-secrets.sh
 ```
@@ -189,7 +189,7 @@ checks, and troubleshooting.
 
 Other documents:
 
-- [docs/BUILD-LOG.md](docs/BUILD-LOG.md) — what was built and in what order
-- [docs/live-flow-verification.md](docs/live-flow-verification.md) — quoted live F1–F5 output
-- [docs/flow-shapes.md](docs/flow-shapes.md) — observed request/response shapes
-- [docs/memory-baseline.md](docs/memory-baseline.md) — **incomplete** memory measurement, no cap applied
+- [docs/BUILD-LOG.md](docs/BUILD-LOG.md): what was built and in what order
+- [docs/live-flow-verification.md](docs/live-flow-verification.md): quoted live F1-F5 output
+- [docs/flow-shapes.md](docs/flow-shapes.md): observed request/response shapes
+- [docs/memory-baseline.md](docs/memory-baseline.md): **incomplete** memory measurement, no cap applied

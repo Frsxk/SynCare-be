@@ -2,9 +2,9 @@
 
 Source of truth: `/home/ubuntu/kittys-workspace/syncare-review/reports/integrated-e2e-test.txt`
 plus the five verified exports in `flows/`. These are **observed** shapes from a real
-end-to-end run — prefer them over invented fixtures.
+end-to-end run; prefer them over invented fixtures.
 
-## F1 — register_discharge_summary
+## F1: register_discharge_summary
 
 Returns a deterministic score plus Gemini-extracted facts. Observed keys include:
 
@@ -21,7 +21,7 @@ Returns a deterministic score plus Gemini-extracted facts. Observed keys include
 Risk factors and the numeric score are emitted by the deterministic scorer component
 (`SynCareRiskScorer`), not by Gemini.
 
-## F2 — record_patient_checkin
+## F2: record_patient_checkin
 
 Re-stratifies risk at every check-in. Two branches, both observed:
 
@@ -30,11 +30,11 @@ Re-stratifies risk at every check-in. Two branches, both observed:
 { "patient_id": "chf-high-e2e", "action": "escalate_immediately" }
 ```
 
-`escalate_immediately` is the red-flag path. It **structurally excludes the scorer** —
+`escalate_immediately` is the red-flag path. It **structurally excludes the scorer**;
 no scoring span appears in the trace at all. A console rendering a red-flag result
 must present it as an escalation, never as a tier change.
 
-## F3 — draft_followup_plan
+## F3: draft_followup_plan
 
 Draft plan with SATUSEHAT-shaped artifacts:
 
@@ -48,9 +48,9 @@ Draft plan with SATUSEHAT-shaped artifacts:
 ```
 
 **Quirk worth knowing:** the `satuseshat` key appears in the report spelled exactly
-that way — do not "fix" it to camelCase when reading.
+that way; do not "fix" it to camelCase when reading.
 
-## F4 — review_care_plan (human gate)
+## F4: review_care_plan (human gate)
 
 Pause event (observed verbatim):
 
@@ -76,13 +76,13 @@ Terminal outputs observed:
 |---|---|
 | Approve | `{ "action": "approved", "confirmation": "...", "approved_at": "..." }` |
 | Escalate | `{ "action": "escalate_to_clinician", "plan_json": {...} }` |
-| Late approve (>300 s) | rerouted to fallback → `escalate_to_clinician`, audit row records `action_id: "fallback"` |
+| Late approve (>300 s) | rerouted to fallback, then `escalate_to_clinician`; audit row records `action_id: "fallback"` |
 
 Audit rows land in `audit_log(action, actor, timestamp, payload)`; approved plans in
 `approved_plans(plan_json, approved_at, reviewer_note)`. **Neither table has a
-`patient_id` column** — identity is inside the JSON payload.
+`patient_id` column**; identity is inside the JSON payload.
 
-## F5 — answer_care_questions
+## F5: answer_care_questions
 
 Grounded answer with provenance anchors plus backend telemetry:
 
