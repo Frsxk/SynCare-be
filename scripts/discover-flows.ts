@@ -1,14 +1,5 @@
-/**
- * Resolve SynCare flow IDs BY NAME and write flows.json.
- *
- * Run:  bun scripts/discover-flows.ts
- *
- * Design rules:
- *  - Never hardcode a flow ID. IDs are assigned by whichever Langflow instance
- *    imported the export, so they differ per install.
- *  - Exit non-zero if any expected flow is missing, so a partial map can never
- *    be mistaken for a complete one.
- */
+/** Resolve SynCare flow IDs by name and write flows.json. */
+/** Never hardcode IDs; exit non-zero when any expected flow is missing. */
 import { readdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 

@@ -1,18 +1,13 @@
 #!/usr/bin/env bash
-# Measure Langflow's real memory footprint during a live flow run, then record
-# whether a memory cap is warranted.
-#
-# Usage: bash scripts/smoke-memory.sh [flow_key]
-#
-# Writes docs/memory-baseline.md. Does NOT modify the compose file: the cap
-# decision belongs to a human, informed by measured numbers.
+# Sample Langflow memory during a live run and write docs/memory-baseline.md.
+# Never edits the compose file; the cap decision belongs to a human.
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
 CONTAINER=syncare-langflow
 OUT=docs/memory-baseline.md
 
-[ -f .env ] || { echo "No .env — run from the repo root after setup."; exit 2; }
+[ -f .env ] || { echo "No .env. Run from the repo root after setup."; exit 2; }
 set -a; . ./.env; set +a
 
 host_free() { free -m | awk '/^Mem:/{print $7}'; }
@@ -43,7 +38,7 @@ if [ -n "$FLOW_ID" ]; then
     -H "x-api-key: $LANGFLOW_API_KEY" -H 'Content-Type: application/json' \
     -d "$PAYLOAD" -o /tmp/syncare-run.json -w '  http=%{http_code} time=%{time_total}s\n' || true
 else
-  echo "No flow id for '$FLOW_KEY' — sampling idle footprint only."
+  echo "No flow id for '$FLOW_KEY': sampling idle footprint only."
 fi
 
 kill $SAMPLER 2>/dev/null || true
@@ -74,7 +69,7 @@ MINFREE=$(cut -d'|' -f3 /tmp/syncare-mem-samples.txt | sort -n | head -1)
   echo "## Interpretation"
   echo
   if [ "${MINFREE:-0}" -gt 400 ]; then
-    echo "Host free memory stayed above 400 MB. **No memory cap applied** — capping would add risk without evidence of a problem."
+    echo "Host free memory stayed above 400 MB. **No memory cap applied**: capping would add risk without evidence of a problem."
   else
     echo "Host free memory dropped to ${MINFREE} MB. A memory cap is worth evaluating; re-measure with \`mem_limit\` set before trusting any figure."
   fi

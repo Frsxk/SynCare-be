@@ -1,21 +1,5 @@
-/**
- * Inject the Gemini API key into every Google GenerativeAI node's `api_key` field.
- *
- * WHY: Langflow REDACTS credential fields on flow export, so an imported flow
- * carries the literal placeholder `***REDACTED***` in `api_key`. Three mechanisms
- * were tried first and each failed:
- *   1. A global Variable alone                 -> component still reported no key
- *   2. load_from: {type:'variable', name:...}  -> component still reported no key
- *   3. Clearing the field to fall back to env  -> component still reported no key
- * Direct verification showed the key IS valid and IS present in the container
- * environment (`ChatGoogleGenerativeAI(...).invoke()` succeeds there), so the
- * remaining gap is purely Langflow's field population.
- *
- * The key is written into Langflow's own flow storage, which Langflow encrypts
- * for Credential-type fields. It is never printed, logged, or committed.
- *
- * Run: bun scripts/inject-gemini-key.ts
- */
+/** Write the Gemini key into every Google GenerativeAI node's api_key field. */
+/** Langflow redacts exports; a global Variable alone is not enough. Never printed or committed. */
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 

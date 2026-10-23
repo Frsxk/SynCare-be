@@ -1,20 +1,5 @@
-/**
- * Point F4's review-SQLite component at a writable path inside the container.
- *
- * WHY: the exported F4 flow hardcodes
- *   db_path = str(Path.home() / "langflow" / "syncare-review.sqlite3")
- * which resolved on the original author's machine to /home/frxskie/langflow/...
- * In this container HOME=/app/data and /home/frxskie does not exist, so the
- * intake component dies with "[Errno 13] Permission denied: '/home/frxskie'"
- * before the human gate is ever reached.
- *
- * The replacement path lives on the bind-mounted volume, so the console can read
- * the resulting database from the host at data/langflow/langflow/.
- *
- * NOTE: the console opens this file READ-ONLY. F4 remains the only writer.
- *
- * Run: bun scripts/fix-review-db-path.ts
- */
+/** Point F4's review-SQLite component at the container bind mount. */
+/** Without this it dies on /home/frxskie before the human gate; F4 remains the only writer. */
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 

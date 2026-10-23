@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
-# F5 live test: grounded Q&A for an APPROVED patient only.
-#
-# F5 is fail-closed by design: it refuses to answer unless it finds BOTH
-#   1. a row in approved_plans, and
-#   2. a matching Approve entry in audit_log
-# for the requested patient_id. This script proves both branches.
-#
-# Usage: bash scripts/smoke-f5.sh
+# F5 live test: grounded answers for an approved patient, refusal for anyone else.
+# F5 requires both an approved_plans row and a matching Approve audit entry.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 set -a; . ./.env; set +a

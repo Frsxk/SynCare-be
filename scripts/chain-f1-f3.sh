@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
-# Chain F1 -> F3 -> F4 so each flow receives the PREVIOUS flow's real output.
-#
-# This mirrors the upstream acceptance run: F3 is a guard that refuses to draft
-# unless it is handed F1's scored output, so a hand-written payload cannot work.
-#
-# Usage: bash scripts/chain-f1-f3.sh
+# Chain F1 -> F3 -> F4 so each flow receives the previous flow's real output.
+# F3 refuses a hand-written payload because it requires F1's scored output.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 set -a; . ./.env; set +a
@@ -70,7 +66,7 @@ print('  satuseshat keys:', list((d.get('satuseshat') or {}).keys()))
 " "$F3_TEXT" 2>/dev/null || echo "  (F3 output not JSON)"
 
 echo
-echo "3. F4 review gate — starting the human-approval job"
+echo "3. F4 review gate: starting the human-approval job"
 F4_ID=$(python3 -c "import json;print(json.load(open('flows.json'))['f4_review_care_plan'])")
 code=$(curl -s --max-time 120 -X POST "$BASE/api/v2/workflows" \
   -H "x-api-key: $LANGFLOW_API_KEY" -H 'Content-Type: application/json' \

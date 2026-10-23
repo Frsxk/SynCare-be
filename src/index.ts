@@ -1,8 +1,4 @@
-/**
- * Entrypoint: creates the app and starts the HTTP listener.
- *
- * Kept separate from app.ts so tests can import the app without binding a port.
- */
+/** Entrypoint: starts the HTTP listener; tests import app.ts without binding a port. */
 import { createApp } from './app.ts'
 import { loadConfig } from './config.ts'
 

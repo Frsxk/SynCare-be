@@ -1,16 +1,5 @@
-/**
- * Rewrite F5's Python-level path constants to this container's writable paths.
- *
- * WHY a separate script: DEFAULT_PROTOCOL_DIR and DEFAULT_PERSIST_DIR are plain
- * module constants inside the component's code, NOT node template fields, so
- * they cannot be fixed through the node PATCH used by scripts/fix-f5-paths.ts.
- * Editing the code string is the only way to redirect them.
- *
- * The review-DB path is handled by fix-f5-paths.ts as a real field.
- *
- * These are synthetic demo protocol documents on a bind mount; nothing clinical
- * is modified. Run: bun scripts/patch-f5-constants.ts
- */
+/** Rewrite F5's Python-level path constants at this container's writable paths. */
+/** The template fields are handled by fix-f5-paths.ts; this handles the code constants. */
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 

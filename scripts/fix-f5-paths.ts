@@ -1,19 +1,5 @@
-/**
- * Repoint F5's hardcoded local paths at writable locations in this container.
- *
- * WHY: the exported F5 flow hardcodes paths from the original author's machine:
- *   DEFAULT_DB_PATH      = /home/frxskie/langflow/syncare-review.sqlite3
- *   DEFAULT_PERSIST_DIR  = /home/frxskie/langflow/syncare-f5-chroma
- *   DEFAULT_PROTOCOL_DIR = /home/frxskie/Documents/trackover/protocols
- * In this container HOME=/app/data and /home/frxskie does not exist, so the
- * retriever fails with "[Errno 13] Permission denied" and its fail-closed
- * approval lookup cannot read the review DB written by F4.
- *
- * All three are moved onto the bind-mounted volume so the host can inspect them.
- * The console still opens the review DB READ-ONLY; F4 remains the only writer.
- *
- * Run: bun scripts/fix-f5-paths.ts
- */
+/** Repoint F5's hardcoded /home/frxskie paths at this container's writable bind mount. */
+/** Without this the flow fails with Permission denied; F4 remains the only writer. */
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
@@ -25,9 +11,8 @@ if (!API_KEY) {
 }
 
 const REMAP: Record<string, string> = {
-  // Node template fields. These OVERRIDE the module-level DEFAULT_* constants,
-  // so patching the constants alone is not enough -- the field names are
-  // protocol_directory / persist_directory / db_path (NOT protocol_dir).
+  // Node template fields override the module-level DEFAULT_* constants, so
+  // patching the constants alone is not enough. Names are protocol_directory / persist_directory / db_path.
   protocol_directory: '/app/langflow/langflow/protocols',
   persist_directory: '/app/langflow/langflow/syncare-f5-chroma',
   db_path: '/app/langflow/langflow/syncare-review.sqlite3',

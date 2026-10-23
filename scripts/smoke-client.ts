@@ -1,13 +1,5 @@
-/**
- * Live smoke test for the Langflow client against a running Langflow.
- *
- * Run: bun scripts/smoke-client.ts
- *
- * The client's own unit tests use a mock fetch; this exercises the real HTTP
- * path. It is expected to reach the Gemini node and fail there for a missing
- * key until global Variables are set — that failure is itself the proof that
- * the imported graph is wired correctly.
- */
+/** Live smoke test for the Langflow client against a running instance. */
+/** A missing Gemini key is an expected result: it proves the graph is wired. */
 import { LangflowTimeoutError, loadFlowMap, runFlow } from '../src/plugins/langflow.ts'
 
 const flows = await loadFlowMap()

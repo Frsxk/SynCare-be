@@ -1,19 +1,6 @@
-/**
- * Bearer-token authentication for the console API.
- *
- * WHY BEARER AND NOT BASIC AUTH: a token-based SPA sends the credential in a
- * header it controls. Basic Auth couples the credential to the browser's own
- * auth dialog and origin-bound credential caching, which breaks fetch/XHR and
- * forces the user through a native prompt on every origin.
- *
- * FAIL-CLOSED BY CONSTRUCTION: this module never has an "open" branch. If no
- * token is configured the server refuses the request; it does not fall back to
- * allowing anonymous access. Deploying with a missing env var must lock the API
- * shut, not expose it.
- */
+/** Bearer-token auth for the console API. Fail-closed: a missing token locks the API. */
 import { createHash, timingSafeEqual } from 'node:crypto'
 
-/** Thrown when a request presents no credential or the wrong one. */
 export class AuthError extends Error {
   constructor(message = 'A valid bearer token is required.') {
     super(message)
@@ -21,11 +8,7 @@ export class AuthError extends Error {
   }
 }
 
-/**
- * Thrown when the server has no token configured at all. Distinct from
- * AuthError so the operator gets an actionable message ("set SYNCARE_API_KEY")
- * rather than being told their token is wrong.
- */
+/** No token configured on the server; distinct from a bad client token. */
 export class AuthNotConfiguredError extends Error {
   constructor() {
     super('SYNCARE_API_KEY is not set on the server. The API is locked.')
@@ -33,11 +16,7 @@ export class AuthNotConfiguredError extends Error {
   }
 }
 
-/**
- * Pull the credential out of an Authorization header.
- * Returns null for absent, non-Bearer, or malformed values — never throws, so
- * a hostile header cannot reach the comparison logic with junk.
- */
+/** Extract a Bearer token; returns null for absent or malformed headers. */
 export function extractBearer(header: string | null | undefined): string | null {
   if (!header) return null
   const match = /^Bearer[ ]+(.+)$/i.exec(header.trim())
@@ -48,13 +27,7 @@ export function extractBearer(header: string | null | undefined): string | null 
   return trimmed.length > 0 ? trimmed : null
 }
 
-/**
- * Constant-time string comparison.
- *
- * timingSafeEqual throws if the buffers differ in length, so both sides are
- * hashed first: that makes the comparison constant-time regardless of token
- * length AND keeps it from leaking the expected length via an exception.
- */
+/** Constant-time comparison; both sides are hashed so length differences cannot throw or leak. */
 export function tokensMatch(presented: string, expected: string): boolean {
   const a = createHash('sha256').update(presented).digest()
   const b = createHash('sha256').update(expected).digest()

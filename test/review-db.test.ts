@@ -1,14 +1,5 @@
-/**
- * Tests for the read-only SynCare review-DB reader plugin.
- *
- * These tests verify the critical domain invariants:
- * 1. The DB is opened strictly read-only — INSERT must throw.
- * 2. isApproved comes from approved_plans TABLE MEMBERSHIP, not plan_json.status.
- * 3. patientIdOf handles all 4 shapes (top-level, nested, satuseshat, absent).
- * 4. approvedPlans() and auditLog() return newest-first by timestamp.
- *
- * All data is SYNTHETIC — no real patient information.
- */
+/** Reader tests: read-only enforcement, table-membership approval, patientIdOf shapes, and ordering. */
+/** All data is synthetic. */
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { Database } from "bun:sqlite";
 import {
@@ -28,8 +19,6 @@ beforeEach(() => {
 afterEach(() => {
   fixture.cleanup();
 });
-
-// ─── patientIdOf: pure function, no DB needed ──────────────────────────────
 
 describe("patientIdOf", () => {
   test("extracts top-level patient_id", () => {
@@ -82,12 +71,8 @@ describe("patientIdOf", () => {
   });
 });
 
-// ─── Read-only enforcement ─────────────────────────────────────────────────
-
 describe("read-only enforcement", () => {
   test("INSERT via read-only connection throws", () => {
-    // The reader opens read-only; we simulate a write attempt by opening
-    // the same file read-only and trying to INSERT.
     const roDb = new Database(fixture.path, { readonly: true });
     expect(() => {
       roDb.run(
@@ -115,8 +100,6 @@ describe("read-only enforcement", () => {
   });
 });
 
-// ─── isApproved from table membership, not plan_json.status ────────────────
-
 describe("isApproved derives from table membership, not plan_json.status", () => {
   test("approved plan with status 'DRAFT pending human approval' still yields isApproved=true", () => {
     const reader = new ReviewDbReader(fixture.path);
@@ -125,14 +108,11 @@ describe("isApproved derives from table membership, not plan_json.status", () =>
 
     expect(plans).toHaveLength(1);
     const plan = plans[0]!;
-    // The stored plan_json.status is 'DRAFT pending human approval' — this
-    // is the upstream invariant (README L304): the approve handler persists
-    // the plan verbatim and does NOT rewrite its status field.
+    // The status stays DRAFT; isApproved is true from table membership alone.
     expect(plan.plan).not.toBeNull();
     const parsed = plan.plan as { status?: string };
     expect(parsed.status).toBe("DRAFT pending human approval");
-    // CRITICAL: isApproved is true because the row EXISTS in approved_plans,
-    // regardless of the status string inside plan_json.
+    // The row exists in approved_plans, so isApproved is true regardless of status.
     expect(plan.isApproved).toBe(true);
   });
 
@@ -140,14 +120,11 @@ describe("isApproved derives from table membership, not plan_json.status", () =>
     const reader = new ReviewDbReader(fixture.path);
     const plans = reader.approvedPlans();
     reader.close();
-    // Every row from approved_plans is approved by definition of table membership.
     for (const p of plans) {
       expect(p.isApproved).toBe(true);
     }
   });
 });
-
-// ─── approvedPlans() ───────────────────────────────────────────────────────
 
 describe("approvedPlans()", () => {
   test("returns all rows with parsed plan_json and patientId", () => {
@@ -165,7 +142,6 @@ describe("approvedPlans()", () => {
   });
 
   test("returns rows newest-first by approved_at", () => {
-    // Add a second approved plan with a later timestamp directly in the fixture DB.
     const db = new Database(fixture.path);
     db.run(
       "INSERT INTO approved_plans (plan_json, approved_at, reviewer_note) VALUES (?, ?, ?)",
@@ -182,7 +158,6 @@ describe("approvedPlans()", () => {
     reader.close();
 
     expect(plans).toHaveLength(2);
-    // Newest first: the 2026-10-06 row should come before 2026-10-05.
     expect(plans[0]!.approved_at).toBe("2026-10-06T10:00:00.000000+00:00");
     expect(plans[1]!.approved_at).toBe("2026-10-05T08:21:37.002846+00:00");
   });
@@ -207,8 +182,6 @@ describe("approvedPlans()", () => {
   });
 });
 
-// ─── auditLog() ────────────────────────────────────────────────────────────
-
 describe("auditLog()", () => {
   test("returns all 4 rows covering approve / request_changes / escalate / fallback", () => {
     const reader = new ReviewDbReader(fixture.path);
@@ -228,7 +201,6 @@ describe("auditLog()", () => {
     const logs = reader.auditLog();
     reader.close();
 
-    // Timestamps inserted: 08:21, 08:35, 08:40, 08:46 — newest first.
     expect(logs[0]!.timestamp).toBe("2026-10-05T08:46:01.000000+00:00");
     expect(logs[1]!.timestamp).toBe("2026-10-05T08:40:55.000000+00:00");
     expect(logs[2]!.timestamp).toBe("2026-10-05T08:35:12.000000+00:00");
@@ -240,23 +212,18 @@ describe("auditLog()", () => {
     const logs = reader.auditLog();
     reader.close();
 
-    // Map action → patientId for easy assertion.
     const byAction = new Map(logs.map((l) => [l.action, l]));
 
-    // approve payload has top-level patient_id → "chf-high"
     const approveLog = byAction.get("approve")!;
     expect(approveLog.data).not.toBeNull();
     expect(approveLog.patientId).toBe("chf-high");
 
-    // request_changes payload has nested patient.id → "chf-medium"
     const rcLog = byAction.get("request_changes")!;
     expect(rcLog.patientId).toBe("chf-medium");
 
-    // escalate payload has satuseshat.subject.reference "Patient/chf-high"
     const escLog = byAction.get("escalate")!;
     expect(escLog.patientId).toBe("chf-high");
 
-    // fallback payload has no patient identity → null
     const fbLog = byAction.get("fallback")!;
     expect(fbLog.patientId).toBeNull();
   });
@@ -280,8 +247,6 @@ describe("auditLog()", () => {
   });
 });
 
-// ─── Fixture schema correctness ────────────────────────────────────────────
-
 describe("fixture DB schema", () => {
   test("has exactly two tables: approved_plans and audit_log", () => {
     const db = new Database(fixture.path);
@@ -295,7 +260,6 @@ describe("fixture DB schema", () => {
     const names = tables.map((t) => t.name);
     expect(names).toEqual(["approved_plans", "audit_log"]);
 
-    // Verify exact DDL matches the authoritative schema.
     const apDdl = tables.find((t) => t.name === "approved_plans")!.sql;
     expect(apDdl).toContain("plan_json TEXT");
     expect(apDdl).toContain("approved_at TEXT");

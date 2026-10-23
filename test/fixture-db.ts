@@ -1,30 +1,12 @@
-/**
- * Test fixture builder: creates a SYNTHETIC review DB with the exact
- * authoritative schema, populated with clearly synthetic data grounded in
- * the real plan_json shapes observed in the upstream SynCare repo.
- *
- * Schema (upstream README L291):
- *   approved_plans(plan_json TEXT NOT NULL, approved_at TEXT NOT NULL, reviewer_note TEXT NOT NULL)
- *   audit_log(action TEXT NOT NULL, actor TEXT NOT NULL, timestamp TEXT NOT NULL, payload TEXT NOT NULL)
- *
- * The fixture creates 2 patients, 1 approved plan, and 4 audit_log rows
- * covering actions: approve / request_changes / escalate / fallback.
- *
- * All data is SYNTHETIC — no real patient information.
- */
+/** Builds a synthetic review DB with the authoritative schema and observed plan_json shapes. */
+/** All data is synthetic; no real patient information. */
 import { Database } from "bun:sqlite";
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-// ─── Synthetic plan_json shapes (grounded in upstream repo evidence) ───────
-
-/**
- * Patient 1 (chf-high): top-level `patient_id`, real F3 draft shape.
- * status is deliberately 'DRAFT pending human approval' — matching the
- * upstream invariant that the approve handler does NOT rewrite this field
- * (README L304). This is the row that lives in approved_plans.
- */
+/** Patient 1 (chf-high): top-level patient_id; this is the row in approved_plans. */
+/** The approve handler does not rewrite status, so it stays 'DRAFT pending human approval'. */
 const planJsonChfHigh = {
   plan_text:
     "Draf tindak lanjut. Diagnosis tercatat: gagal jantung NYHA III. " +
@@ -60,11 +42,7 @@ const planJsonChfHigh = {
     "Pending human clinical approval.",
 };
 
-/**
- * Patient 2 (chf-medium): nested `patient.id` shape — used to exercise the
- * patientIdOf extractor's alternate path. This patient has NO approved plan
- * (only appears in audit_log).
- */
+/** Patient 2 (chf-medium): nested patient.id shape; appears only in audit_log. */
 const auditPayloadChfMedium = {
   action: "request_changes",
   patient: { id: "chf-medium" },
@@ -73,10 +51,7 @@ const auditPayloadChfMedium = {
   status: "DRAFT pending human approval",
 };
 
-/**
- * Escalation payload for patient 1 — uses `satuseshat.subject.reference`
- * (FHIR-shaped "Patient/<id>") to exercise the third extractor path.
- */
+/** Escalation payload using satuseshat.subject.reference (FHIR "Patient/<id>"). */
 const escalatePayload = {
   action: "escalate_to_clinician",
   plan_json: {
@@ -90,13 +65,11 @@ const escalatePayload = {
   },
 };
 
-/** Fallback payload — no patient identity (exercises the null case). */
+/** Fallback payload with no patient identity; exercises the null case. */
 const fallbackPayload = {
   action: "escalate_to_clinician",
   reason: "Human input timeout (300s); auto-escalated per fallback policy.",
 };
-
-// ─── Fixture DB builder ────────────────────────────────────────────────────
 
 export interface FixtureDb {
   /** Absolute path to the temp SQLite file. */
@@ -107,11 +80,7 @@ export interface FixtureDb {
   cleanup: () => void;
 }
 
-/**
- * Create a synthetic review DB in a temp directory.
- *
- * @returns Object with the DB path and a cleanup function.
- */
+/** Create a synthetic review DB in a temp directory. */
 export function createFixtureDb(): FixtureDb {
   const dir = mkdtempSync(join(tmpdir(), "syncare-review-fixture-"));
   const path = join(dir, "fixture-review.sqlite3");
@@ -134,7 +103,7 @@ export function createFixtureDb(): FixtureDb {
     )
   `);
 
-  // 1 approved plan — patient chf-high, status deliberately still 'DRAFT ...'
+  // One approved plan; status deliberately remains 'DRAFT pending human approval'.
   db.run(
     "INSERT INTO approved_plans (plan_json, approved_at, reviewer_note) VALUES (?, ?, ?)",
     [
@@ -144,7 +113,7 @@ export function createFixtureDb(): FixtureDb {
     ],
   );
 
-  // 4 audit_log rows covering all action types, ordered oldest→newest.
+  // Four audit rows covering all action types, oldest first.
   // Timestamps are ISO-8601 UTC so lexicographic sort = chronological.
   db.run(
     "INSERT INTO audit_log (action, actor, timestamp, payload) VALUES (?, ?, ?, ?)",

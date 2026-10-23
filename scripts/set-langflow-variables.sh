@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
-# Set Langflow global Variables (Gemini + Astra) from ~/.env.langflow.
-#
-# Credentials are read from the file and POSTed to the Langflow Variables API.
-# They are NEVER echoed, never logged, and never written to this repo.
-# Langflow encrypts each value with LANGFLOW_SECRET_KEY before storing it.
-#
-# Usage: bash scripts/set-langflow-variables.sh
+# Upsert Langflow global Variables from ~/.env.langflow.
+# Values are never echoed, logged, or written to this repo.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

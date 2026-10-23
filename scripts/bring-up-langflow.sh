@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
-# Rebuild the Langflow data directory from scratch and start a clean instance.
-#
-# Used when the starter projects must not be seeded. Destroys the local
-# Langflow database, so it is only ever run deliberately.
+# Rebuild the Langflow data directory and start a clean instance.
+# Destroys local Langflow data; run deliberately.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

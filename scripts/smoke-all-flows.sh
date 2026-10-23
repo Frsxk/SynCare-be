@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
-# Live-run every SynCare flow against the running Langflow and record the result.
-#
-# Usage: bash scripts/smoke-all-flows.sh
-# Writes docs/flow-run-log.md
+# Live-run every SynCare flow and record the result in docs/flow-run-log.md.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 set -a; . ./.env; set +a

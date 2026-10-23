@@ -1,13 +1,6 @@
 #!/usr/bin/env bash
-# Chain F1 -> F3 -> F4 with the EXACT envelope each flow's guard requires.
-#
-# Discovered by reading the flows' own component code, not by guessing:
-#   F3 requires {"patient_id": ..., "f1_scored_output": {episode with ALL EIGHT
-#   fields, ...}} and raises KeyError('f1_scored_output') otherwise.
-#   F4 requires a guarded F3 DRAFT and refuses anything else:
-#   "Only a guarded synthetic F3 DRAFT may enter review".
-#
-# Usage: bash scripts/chain-full.sh
+# Chain F1 -> F3 -> F4 with the exact envelopes the guards require.
+# F3 needs all eight episode fields; F4 accepts only a guarded F3 DRAFT.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 set -a; . ./.env; set +a

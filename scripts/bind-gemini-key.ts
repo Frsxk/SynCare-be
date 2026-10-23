@@ -1,16 +1,5 @@
-/**
- * Bind the GEMINI_API_KEY global Variable to every Google GenerativeAI node.
- *
- * WHY THIS IS NEEDED: Langflow redacts credential fields on flow export, so each
- * imported Gemini node carries the literal placeholder `***REDACTED***` in its
- * `api_key` field. A global Variable alone does not satisfy it — the field must
- * either hold a real value or be bound to the Variable by field name.
- *
- * This script sets the binding in place. It never reads, prints, or transmits the
- * key value: the binding references the Variable BY NAME.
- *
- * Run: bun scripts/bind-gemini-key.ts
- */
+/** Clear redacted Gemini api_key fields so the component reads GEMINI_API_KEY from the environment. */
+/** The key value is never read, printed, or transmitted; only the field is changed. */
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
@@ -68,9 +57,8 @@ for (const [key, flowId] of Object.entries(flows)) {
 
       if (!isPlaceholder && !wasNulled) continue
 
-      // Explicit `value: null` BLOCKS the process env fallback, so the field is
-      // cleared entirely and the component resolves GEMINI_API_KEY from the
-      // environment instead. Binding the Variable alone was not sufficient.
+      // Clear the field entirely: an explicit null blocks the env fallback, and
+      // a Variable binding alone was not sufficient.
       ;(tpl as Record<string, Record<string, unknown>>)[field] = {
         ...spec,
         load_from_db: false,

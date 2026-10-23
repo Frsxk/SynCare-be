@@ -1,13 +1,5 @@
-/**
- * Tests for src/plugins/langflow.ts
- *
- * These tests do NOT require a live Langflow. They use dependency injection
- * (a mock fetch passed via opts.fetchImpl) to verify:
- *  - success path (runFlow, startReviewJob, resumeReviewJob)
- *  - non-2xx → LangflowHttpError containing the status
- *  - timeout → LangflowTimeoutError with the guidance message
- *  - secret redaction: the API key never appears in console output or error messages
- */
+/** Client tests using an injected fetch; no live Langflow required. */
+/** Covers success, HTTP errors, timeouts, and API-key redaction. */
 import { describe, test, expect, beforeAll, afterAll, spyOn } from 'bun:test'
 import {
   runFlow,
@@ -17,20 +9,13 @@ import {
   LangflowHttpError,
 } from '../src/plugins/langflow'
 
-// ---------------------------------------------------------------------------
-// Test helpers
-// ---------------------------------------------------------------------------
-
 /** A fake API key used across tests. We assert it never leaks. */
 const TEST_API_KEY = 'sk-test-secret-key-DO-NOT-LEAK-1234567890'
 
-/** A fake flow id. */
 const TEST_FLOW_ID = 'dd096aae-e02c-4a36-b3c3-ec8c741b0e66'
 
-/** A fake job id. */
 const TEST_JOB_ID = 'a98d9753-9259-47ca-9783-69a9d8d26889'
 
-/** Build a mock Response object. */
 function mockResponse(body: unknown, init: { status?: number; statusText?: string } = {}): Response {
   const status = init.status ?? 200
   const text = typeof body === 'string' ? body : JSON.stringify(body)
@@ -72,15 +57,10 @@ function makeHangingFetch(): typeof globalThis.fetch {
           reject(new DOMException('The operation was aborted.', 'AbortError'))
         }, { once: true })
       }
-      // Never resolves otherwise
     })
   }
   return fn as unknown as typeof globalThis.fetch
 }
-
-// ---------------------------------------------------------------------------
-// Setup / teardown: set env vars
-// ---------------------------------------------------------------------------
 
 beforeAll(() => {
   process.env.LANGFLOW_BASE_URL = 'http://127.0.0.1:7860'
@@ -91,10 +71,6 @@ afterAll(() => {
   delete process.env.LANGFLOW_BASE_URL
   delete process.env.LANGFLOW_API_KEY
 })
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
 
 describe('runFlow', () => {
   test('success path: returns parsed output text and session id', async () => {
@@ -128,7 +104,6 @@ describe('runFlow', () => {
     expect(result.outputText).toBe('Sure! Here is your answer.')
     expect(result.sessionId).toBe('chat-123')
 
-    // Verify the request shape
     expect(calls.length).toBe(1)
     const call = calls[0]!
     expect(call.url).toBe('http://127.0.0.1:7860/api/v1/run/' + TEST_FLOW_ID)
@@ -172,10 +147,8 @@ describe('runFlow', () => {
       expect(err).toBeInstanceOf(LangflowTimeoutError)
       const timeoutErr = err as LangflowTimeoutError
       expect(timeoutErr.timeoutMs).toBe(50)
-      // Guidance message must mention the client budget and pre-warming
       expect(timeoutErr.message.toLowerCase()).toContain('60s')
       expect(timeoutErr.message.toLowerCase()).toContain('pre-warm')
-      // Must NOT contain the API key
       expect(timeoutErr.message).not.toContain(TEST_API_KEY)
     }
   })
@@ -208,7 +181,6 @@ describe('startReviewJob', () => {
     expect(result.status).toBe('queued')
     expect(result.links?.events).toContain(TEST_JOB_ID)
 
-    // Verify request shape — v2 workflows endpoint with mode=background
     expect(calls.length).toBe(1)
     const call = calls[0]!
     expect(call.url).toBe('http://127.0.0.1:7860/api/v2/workflows')
@@ -267,14 +239,12 @@ describe('resumeReviewJob', () => {
     expect(result.jobId).toBe(TEST_JOB_ID)
     expect(result.status).toBe('in_progress')
 
-    // Verify request shape — POST /api/v2/workflows/{jobId}/resume
     expect(calls.length).toBe(1)
     const call = calls[0]!
     expect(call.url).toBe(`http://127.0.0.1:7860/api/v2/workflows/${TEST_JOB_ID}/resume`)
     expect(call.init.method).toBe('POST')
     const body = JSON.parse(call.init.body as string)
-    // Verified against Langflow 1.12.3: the decision is NESTED and the Human
-    // Input request_id sits at the top level.
+    // 1.12.3 nests the decision and keeps request_id at the top level.
     expect(body.decision.action_id).toBe('approve')
     expect(body.decision.input_value).toBe('Looks good')
     expect(body.request_id).toBe('HumanInput-test:job')
@@ -309,7 +279,7 @@ describe('resumeReviewJob', () => {
   })
 })
 
-describe('secret hygiene — API key never leaks', () => {
+describe('secret hygiene: API key never leaks', () => {
   test('API key absent from console output during success path', async () => {
     const langflowResponse = {
       session_id: 'chat-123',
@@ -323,14 +293,12 @@ describe('secret hygiene — API key never leaks', () => {
     }
     const { fetch } = makeMockFetch([mockResponse(langflowResponse)])
 
-    // Capture console output
     const logSpy = spyOn(console, 'log')
     const errSpy = spyOn(console, 'error')
     const warnSpy = spyOn(console, 'warn')
 
     await runFlow(TEST_FLOW_ID, 'hello', { fetchImpl: fetch })
 
-    // Assert the key string is absent from every console call
     for (const [args] of logSpy.mock.calls) {
       expect(String(args)).not.toContain(TEST_API_KEY)
     }
@@ -360,7 +328,6 @@ describe('secret hygiene — API key never leaks', () => {
       expect(msg).toContain('403')
       // The key from the x-api-key header must not appear in the error message
       expect(msg).not.toContain(TEST_API_KEY)
-      // The key must not appear anywhere in the serialized error object
       expect(JSON.stringify(err)).not.toContain(TEST_API_KEY)
     }
   })
@@ -397,7 +364,6 @@ describe('secret hygiene — API key never leaks', () => {
 
     const result = await runFlow(TEST_FLOW_ID, 'hello', { fetchImpl: fetch })
 
-    // The returned object must not contain the API key anywhere
     expect(JSON.stringify(result)).not.toContain(TEST_API_KEY)
   })
 
@@ -447,7 +413,6 @@ describe('missing API key', () => {
       throw new Error('should have thrown')
     } catch (err) {
       expect((err as Error).message).toContain('LANGFLOW_API_KEY')
-      // The error must not contain any actual key value
       expect((err as Error).message).not.toContain(TEST_API_KEY)
     }
 

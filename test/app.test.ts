@@ -1,6 +1,4 @@
-/**
- * App-level tests. No live Langflow required: the flow runner is injected.
- */
+/** App-level tests with an injected flow runner; no live Langflow required. */
 import { describe, expect, test } from 'bun:test'
 import { createApp } from '../src/app.ts'
 import type { AppConfig } from '../src/config.ts'
@@ -27,11 +25,8 @@ function baseConfig(over: Partial<AppConfig> = {}): AppConfig {
   }
 }
 
-/**
- * Every /api route requires the bearer token, so tests that exercise
- * non-auth behaviour must still present a valid one. Centralising this keeps
- * the auth suite the only place that deliberately omits the header.
- */
+/** Add the bearer token so non-auth tests still pass the gate. */
+/** The auth suite is the only place that deliberately omits the header. */
 function authed(pathname: string, init: RequestInit = {}): Request {
   return new Request(`http://localhost${pathname}`, {
     ...init,
@@ -104,8 +99,7 @@ describe('read-only mode', () => {
 
 describe('flow proxy', () => {
   test('returns the flow output verbatim without re-scoring', async () => {
-    // A red-flag escalation exactly as F2 emits it. The console must not
-    // soften it, add a tier, or reword it.
+    // A red-flag escalation exactly as F2 emits it; the console must not soften it.
     const flowOutput = {
       raw: { action: 'escalate_immediately', patient_id: 'chf-high' },
       outputText: null,
@@ -153,13 +147,8 @@ describe('flow proxy', () => {
 })
 
 describe('Langflow unavailable', () => {
-  /**
-   * Langflow is the clinical engine. When it is down the request cannot be
-   * served, and the frontend must be able to tell "the engine is down, retry"
-   * apart from "your input was wrong". This shipped as an opaque 500 before
-   * LangflowUnreachableError existed, because fetch rejects with a bare
-   * TypeError that matched no branch in the error handler.
-   */
+  /** Langflow is the clinical engine; engine failure must stay distinct from bad input. */
+  /** Before LangflowUnreachableError, the bare TypeError surfaced as an opaque 500. */
   const refused = () => {
     // Exactly what Bun's fetch throws on connection refused.
     const err = new TypeError('fetch failed')
@@ -169,9 +158,7 @@ describe('Langflow unavailable', () => {
   }
 
   test('runFlow wraps a transport failure into LangflowUnreachableError', async () => {
-    // Tested at the CLIENT layer, not by injecting a throwing runFlowImpl: the
-    // wrapping happens inside doFetch, so stubbing the caller would bypass the
-    // very code path that is being fixed.
+    // Test at the client layer: the wrapping happens in doFetch, not in the caller.
     const { LangflowUnreachableError, runFlow: realRunFlow } = await import('../src/plugins/langflow.ts')
     const prevKey = process.env.LANGFLOW_API_KEY
     const prevBase = process.env.LANGFLOW_BASE_URL
@@ -198,8 +185,7 @@ describe('Langflow unavailable', () => {
   })
 
   test('the error handler maps it to 503 langflow_unreachable', async () => {
-    // The handler only discriminates on the typed error, so inject exactly that
-    // -- reproducing the post-doFetch state rather than a bare TypeError.
+    // Inject the typed error, reproducing the post-doFetch state.
     const { LangflowUnreachableError } = await import('../src/plugins/langflow.ts')
     const app = createApp({
       config: baseConfig(),
@@ -300,12 +286,7 @@ describe('plans (read-only view of flow-written state)', () => {
 })
 
 describe('bearer authentication', () => {
-  /**
-   * The clinical routes that matter most. `/api/v1/reviews` plus its /resume
-   * endpoint IS the human-approval gate: if those are reachable without a
-   * token, the entire human-in-the-loop safety property is void. They are
-   * listed here explicitly so a regression names the actual hole.
-   */
+  /** The approval gate is safety-critical; these routes are listed so a regression names the hole. */
   const PROTECTED = [
     { method: 'GET', path: '/api/v1/plans' },
     { method: 'GET', path: '/api/v1/plans/chf-high' },
@@ -413,8 +394,7 @@ describe('bearer authentication', () => {
 
   test('an unauthenticated caller cannot enumerate routes via 404 vs 401', async () => {
     const app = createApp({ config: baseConfig(), flows: FLOWS })
-    // A route that does not exist must still answer 401, not 404. If it 404ed,
-    // an anonymous caller could map the API surface for free.
+    // An unknown route must answer 401, not 404, or the surface is mappable.
     const res = await app.handle(new Request('http://localhost/api/v1/nonexistent'))
     expect(res.status).toBe(401)
   })
@@ -447,13 +427,8 @@ describe('bearer authentication', () => {
     expect(text).not.toContain('definitely-not-the-key')
   })
 
-  /**
-   * SYNCare-fe INTEGRATION NOTE: native `EventSource` cannot set an
-   * Authorization header, so the browser MUST consume this SSE route with
-   * `fetch()` + `ReadableStream` instead. That is deliberate: passing the token
-   * as a query parameter would work, but query strings land in access logs,
-   * proxy logs, and browser history. Fetch lets the header stay in the header.
-   */
+  /** Native EventSource cannot set Authorization, so the browser must use fetch + ReadableStream. */
+  /** A ?token= query parameter would leak the token into logs and history. */
   test('the SSE event route requires the token too', async () => {
     const app = createApp({
       config: baseConfig(),

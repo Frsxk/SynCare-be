@@ -1,12 +1,5 @@
-/**
- * Import the five verified SynCare flows into Langflow and print the name -> id map.
- *
- * Run:  bun scripts/import-flows.ts
- * Env:  LANGFLOW_BASE_URL (default http://127.0.0.1:7860)
- *       LANGFLOW_API_KEY  (required — mint in the Langflow UI, Settings > API keys)
- *
- * Secrets are read from the environment only and never printed.
- */
+/** Import the five verified flows and print the name -> id map. */
+/** Secrets come from the environment only and are never printed. */
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
@@ -20,7 +13,7 @@ if (!API_KEY) {
 
 const FLOWS_DIR = join(import.meta.dir, '..', 'flows')
 
-/** Node counts verified against the source repo — a mismatch means a truncated copy. */
+/** Node counts verified against the source repo; a mismatch means a truncated copy. */
 const EXPECTED_NODES: Record<string, number> = {
   'register_discharge_summary.json': 4,
   'record_patient_checkin.json': 7,
@@ -57,7 +50,7 @@ async function main() {
     const expected = EXPECTED_NODES[file]
 
     if (expected !== undefined && nodeCount !== expected) {
-      console.error(`  SKIP ${file}: node count ${nodeCount}, expected ${expected} — refusing to import a truncated flow`)
+      console.error(`  SKIP ${file}: node count ${nodeCount}, expected ${expected}; refusing to import a truncated flow`)
       failed++
       continue
     }

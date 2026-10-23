@@ -19,7 +19,7 @@ status=0
 for pat in "${PATTERNS[@]}"; do
   # --exclude-dir=.git etc. must be re-passed per invocation for grep -r
   if out=$(grep -rInE "$pat" "${TARGETS[@]}" 2>/dev/null); then
-    echo "SECRET LEAK — pattern: $pat"
+    echo "SECRET LEAK in pattern: $pat"
     echo "$out" | head -10
     status=1
   fi
@@ -27,7 +27,7 @@ done
 
 # Also flag any tracked .env file outright.
 if git ls-files --error-unmatch .env >/dev/null 2>&1; then
-  echo "SECRET LEAK — .env is tracked by git"; status=1
+  echo "SECRET LEAK: .env is tracked by git"; status=1
 fi
 
 if [ "$status" -eq 0 ]; then
