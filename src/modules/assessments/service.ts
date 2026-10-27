@@ -93,10 +93,13 @@ export class AssessmentService {
     }
     await this.store.transaction(tx => {
       const now = this.clock().toISOString()
-      tx.run('UPDATE assessments SET state=?,version=2,completed_at=?,output_json=?,raw_json=?,failure_code=? WHERE id=? AND state=?',
-        [state, now, output ? JSON.stringify(output) : null, raw, failure, prepared.row.id, 'RUNNING'])
-      tx.run('INSERT INTO operational_audit VALUES (?,?,?,?,?,?,?)', [randomUUID(), ctx.principal.id, `assessment.${state.toLowerCase()}`, 'patient', source.patient_id, now,
-        JSON.stringify({ assessmentId: prepared.row.id, dischargeId, sourceVersion: source.version })])
+      tx.run(`UPDATE assessments SET state=?,version=2,completed_at=?,output_json=?,raw_json=?,failure_code=?
+        WHERE id=? AND state='RUNNING' AND version=1 AND completed_at IS NULL`,
+        [state, now, output ? JSON.stringify(output) : null, raw, failure, prepared.row.id])
+      if (tx.get<{ changed: number }>('SELECT changes() AS changed')!.changed === 1) {
+        tx.run('INSERT INTO operational_audit VALUES (?,?,?,?,?,?,?)', [randomUUID(), ctx.principal.id, `assessment.${state.toLowerCase()}`, 'patient', source.patient_id, now,
+          JSON.stringify({ assessmentId: prepared.row.id, dischargeId, sourceVersion: source.version })])
+      }
     })
     authorizeAssessment(this.store, ctx, source.patient_id)
     return assessmentProjection(this.store.get<AssessmentRow>('SELECT * FROM assessments WHERE id=?', [prepared.row.id])!)

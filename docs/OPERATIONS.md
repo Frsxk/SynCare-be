@@ -113,6 +113,11 @@ SYNCARE_READ_ONLY=1 systemd-run --user --unit=syncare-console-ro \
 Simplest alternative: add `SYNCARE_READ_ONLY=1` to `.env` and restart the unit.
 Note this also disables the live approval click, so F4 demo becomes Langflow-UI-only.
 
+Read-only startup does **not** repair F1 assessments orphaned in `RUNNING` by a
+crash. A controlled, authorized restart in writable mode is required for the
+one-shot audited `RUNNING` → `UNKNOWN` transition (`assessment.recovered_unknown`).
+Recovery never replays F1; request a fresh assessment explicitly afterward.
+
 ---
 
 ## Troubleshooting
