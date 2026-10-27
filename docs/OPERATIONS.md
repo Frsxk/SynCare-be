@@ -40,7 +40,7 @@ journalctl --user -u syncare-console.service --since -10m  # recent
 `syncare-langflow` Docker container. If you want the whole stack down:
 
 ```bash
-cd ~/kittys-workspace/syncare-be && docker compose stop langflow
+cd /path/to/syncare-be && docker compose stop langflow
 ```
 
 With the console stopped, `https://syncare.trackover.web.id` returns **502**;
@@ -67,7 +67,7 @@ Backups live at `/etc/caddy/Caddyfile.bak-*`.
 The bearer token is read from `.env` **at startup only**.
 
 ```bash
-cd ~/kittys-workspace/syncare-be
+cd /path/to/syncare-be
 python3 -c "import secrets; print(secrets.token_urlsafe(32))"   # generate
 # edit SYNCARE_API_KEY= in .env  (chmod 600), then:
 systemctl --user restart syncare-console.service
@@ -108,9 +108,9 @@ read-only mode. Writes return `403`; reads and F1-F3 still work.
 ```bash
 systemctl --user stop syncare-console.service
 SYNCARE_READ_ONLY=1 systemd-run --user --unit=syncare-console-ro \
-  --property=WorkingDirectory=/home/ubuntu/kittys-workspace/syncare-be \
-  --property=EnvironmentFile=/home/ubuntu/kittys-workspace/syncare-be/.env \
-  /home/ubuntu/.bun/bin/bun /home/ubuntu/kittys-workspace/syncare-be/src/index.ts
+  --property=WorkingDirectory=/path/to/syncare-be \
+  --property=EnvironmentFile=/path/to/syncare-be/.env \
+  "$(command -v bun)" /path/to/syncare-be/src/index.ts
 ```
 
 Simplest alternative: add `SYNCARE_READ_ONLY=1` to `.env` and restart the unit.

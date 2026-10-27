@@ -1,8 +1,7 @@
 # Real flow output shapes (from the verified SynCare repo)
 
-Source of truth: `/home/ubuntu/kittys-workspace/syncare-review/reports/integrated-e2e-test.txt`
-plus the five verified exports in `flows/`. These are **observed** shapes from a real
-end-to-end run; prefer them over invented fixtures.
+Source of truth: the five verified exports in `flows/`. These are **observed** shapes
+from a real end-to-end run; prefer them over invented fixtures.
 
 ## F1: register_discharge_summary
 

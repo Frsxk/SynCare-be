@@ -255,7 +255,7 @@ checks, and troubleshooting.
 
 Other documents:
 
-- [docs/BUILD-LOG.md](docs/BUILD-LOG.md): what was built and in what order
-- [docs/live-flow-verification.md](docs/live-flow-verification.md): quoted live F1-F5 output
 - [docs/flow-shapes.md](docs/flow-shapes.md): observed request/response shapes
-- [docs/memory-baseline.md](docs/memory-baseline.md): **incomplete** memory measurement, no cap applied
+- [docs/runtime-bindings.md](docs/runtime-bindings.md): flow-binding verification
+- [docs/cross-platform-secrets.md](docs/cross-platform-secrets.md): local secret provisioning
+- [docs/storage-foundation.md](docs/storage-foundation.md): storage model
