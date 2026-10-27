@@ -1,9 +1,9 @@
 {
-  "folderId": "2d9f89f1-7ea3-439a-9f33-832728a496c4",
-  "edgesSha256": "8507d1b03dfcba6d7839bad375cc01cbc76432d67338e51b2ac6c28a9a00d57d",
+  "folderId": "d042a6d9-7a43-4a59-b44d-73859cb0d39c",
+  "edgesSha256": "3b5584d0f6c94178f58045d03593f2cd4f941c439eca21f538da7e89db76995a",
   "components": {
-    "CustomComponent-6GpeV": "7649d5609416c0ac659993e6ec8e205e4a598bbec55d4bd208a4b643e37eb43a",
-    "CustomComponent-J7TnS": "801a3975418dde855bd58167828fc83eba208e8719c87d04ddddc040eb981575",
-    "CustomComponent-s8Ihp": "52bad0f112d1876268eb9cede4c3c55e38539c237f000a0f40e8a8c6cbd54ea5"
+    "SynCareRedFlagGuard-A1": "7649d5609416c0ac659993e6ec8e205e4a598bbec55d4bd208a4b643e37eb43a",
+    "SynCareRetriever-R1": "c85e69533771000cf910c83fb41e77df9d8d4d8b80a695a314d5506258d02c61",
+    "SynCareAnswerVerifier-V1": "52bad0f112d1876268eb9cede4c3c55e38539c237f000a0f40e8a8c6cbd54ea5"
   }
 }

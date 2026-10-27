@@ -2,6 +2,7 @@
   "id": "dd096aae-e02c-4a36-b3c3-ec8c741b0e66",
   "name": "register_discharge_summary",
   "description": "SynCare synthetic-only discharge extraction and deterministic demo-heuristic-v1 risk tier; not clinically validated. Human clinical oversight required.",
+  "folder_id": "d042a6d9-7a43-4a59-b44d-73859cb0d39c",
   "data": {
     "nodes": [
       {
@@ -319,13 +320,12 @@
             "template": {
               "_type": "Component",
               "api_key": {
-                "load_from_db": true,
+                "load_from_db": false,
                 "override_skip": false,
                 "required": true,
                 "placeholder": "",
                 "show": true,
                 "name": "api_key",
-                "value": "***REDACTED***",
                 "display_name": "Google API Key",
                 "advanced": false,
                 "api_editable": false,
@@ -337,7 +337,12 @@
                 "track_in_telemetry": false,
                 "password": true,
                 "type": "str",
-                "_input_type": "SecretStrInput"
+                "_input_type": "SecretStrInput",
+                "load_from": {
+                  "type": "variable",
+                  "name": "GEMINI_API_KEY"
+                },
+                "value": "***REDACTED***"
               },
               "code": {
                 "type": "code",

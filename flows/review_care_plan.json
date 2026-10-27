@@ -2,6 +2,7 @@
   "id": "b9413d2e-cb01-43e0-b83b-d4b1bb90a3a3",
   "name": "review_care_plan",
   "description": "SynCare synthetic human review gate, approve-only SQLite persistence, audit for every action and F3 redrafting.",
+  "folder_id": "d042a6d9-7a43-4a59-b44d-73859cb0d39c",
   "data": {
     "nodes": [
       {
@@ -9,7 +10,7 @@
         "type": "genericNode",
         "position": {
           "x": 0,
-          "y": 0.0
+          "y": 0
         },
         "selected": false,
         "data": {
@@ -309,7 +310,7 @@
         "type": "genericNode",
         "position": {
           "x": 480,
-          "y": 0.0
+          "y": 0
         },
         "selected": false,
         "data": {
@@ -348,7 +349,7 @@
                 "placeholder": "",
                 "show": true,
                 "name": "db_path",
-                "value": "/home/frxskie/langflow/syncare-review.sqlite3",
+                "value": "/app/langflow/langflow/syncare-review.sqlite3",
                 "display_name": "Review SQLite Path",
                 "advanced": true,
                 "api_editable": false,
@@ -448,7 +449,7 @@
         "type": "genericNode",
         "position": {
           "x": 960,
-          "y": 0.0
+          "y": 0
         },
         "selected": false,
         "data": {
@@ -717,7 +718,7 @@
         "type": "genericNode",
         "position": {
           "x": 1440,
-          "y": -525.0
+          "y": -525
         },
         "selected": false,
         "data": {
@@ -879,7 +880,7 @@
         "type": "genericNode",
         "position": {
           "x": 1440,
-          "y": -175.0
+          "y": -175
         },
         "selected": false,
         "data": {
@@ -1041,7 +1042,7 @@
         "type": "genericNode",
         "position": {
           "x": 1440,
-          "y": 175.0
+          "y": 175
         },
         "selected": false,
         "data": {
@@ -1203,7 +1204,7 @@
         "type": "genericNode",
         "position": {
           "x": 1920,
-          "y": 175.0
+          "y": 175
         },
         "selected": false,
         "data": {
@@ -1632,7 +1633,7 @@
         "type": "genericNode",
         "position": {
           "x": 1920,
-          "y": -525.0
+          "y": -525
         },
         "selected": false,
         "data": {
@@ -1939,7 +1940,7 @@
         "type": "genericNode",
         "position": {
           "x": 1920,
-          "y": -175.0
+          "y": -175
         },
         "selected": false,
         "data": {
@@ -2246,7 +2247,7 @@
         "type": "genericNode",
         "position": {
           "x": 2400,
-          "y": 0.0
+          "y": 0
         },
         "selected": false,
         "data": {
@@ -2553,7 +2554,7 @@
         "type": "genericNode",
         "position": {
           "x": 1440,
-          "y": 525.0
+          "y": 525
         },
         "selected": false,
         "data": {
@@ -2715,7 +2716,7 @@
         "type": "genericNode",
         "position": {
           "x": 1920,
-          "y": 525.0
+          "y": 525
         },
         "selected": false,
         "data": {

@@ -55,7 +55,7 @@ const SHIPPED_FILES: Record<FlowKey, string> = {
 const ROLE_HASHES = {
   scorer: '6c81adf2420034150ac3afbab2278f118fa87835090b5abd565712273b00c22b',
   guard: '7649d5609416c0ac659993e6ec8e205e4a598bbec55d4bd208a4b643e37eb43a',
-  retriever: '801a3975418dde855bd58167828fc83eba208e8719c87d04ddddc040eb981575',
+  retriever: 'c85e69533771000cf910c83fb41e77df9d8d4d8b80a695a314d5506258d02c61',
   verifier: '52bad0f112d1876268eb9cede4c3c55e38539c237f000a0f40e8a8c6cbd54ea5',
 } as const
 
@@ -287,29 +287,45 @@ describe('offline shipped-bundle validation', () => {
     const f5 = readJson(join(SHIPPED, SHIPPED_FILES.f5_answer_care_questions))
     const f5Config = readJson(join(CONFIG, 'f5-runtime.demo.json'))
     expect(hashFlowEdges(f5)).toBe('3b5584d0f6c94178f58045d03593f2cd4f941c439eca21f538da7e89db76995a')
-    expect(hashFlowEdges(f5)).not.toBe(f5Config.edgesSha256)
+    expect(hashFlowEdges(f5)).toBe(f5Config.edgesSha256)
   })
 
-  test('reports the known F2 scorer-ID, F5 pin/graph/folder and manifest-ID mismatches', () => {
+  test('accepts the bundle rebound to the deployed engine generation', () => {
     const report = validateOfflineBundle()
+    expect(report.findings).toEqual([])
+    expect(report.status).toBe('match')
+
+    const f2Config = readJson(join(CONFIG, 'f2-context.demo.json'))
+    expect(f2Config.scorerId).toBe('CustomComponent-uFKzq')
+    expect(f2Config.scorerCodeSha256).toBe(ROLE_HASHES.scorer)
+
+    const f5Config = readJson(join(CONFIG, 'f5-runtime.demo.json'))
+    expect(Object.keys(f5Config.components).sort()).toEqual([
+      'SynCareAnswerVerifier-V1', 'SynCareRedFlagGuard-A1', 'SynCareRetriever-R1',
+    ])
+    expect(f5Config.components['SynCareRetriever-R1']).toBe('c85e69533771000cf910c83fb41e77df9d8d4d8b80a695a314d5506258d02c61')
+    expect(f5Config.folderId).toBe('d042a6d9-7a43-4a59-b44d-73859cb0d39c')
+  })
+
+  test('still reports a manifest flow-id mismatch against a foreign map', () => {
+    const root = temp()
+    const flowsJsonPath = join(root, 'flows.json')
+    const manifest = readJson(FLOWS_JSON)
+    manifest.f2_record_patient_checkin = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2'
+    writeFileSync(flowsJsonPath, jsonText(manifest))
+    const report = validateOfflineBundle({ flowsJsonPath })
     expect(report.status).toBe('mismatch')
+    expect(report.findings.map(finding => finding.code)).toContain('flow_id_mismatch')
+  })
+
+  test('reports the removed legacy-drift findings no longer apply to the shipped bundle', () => {
+    const report = validateOfflineBundle()
     const codes = report.findings.map(finding => finding.code)
-    expect(codes).toContain('f2_scorer_id_absent')
-    expect(codes).toContain('f5_component_id_absent')
-    expect(codes).toContain('f5_edges_hash_mismatch')
-    expect(codes).toContain('f5_folder_identity_absent')
-    expect(codes.filter(code => code === 'flow_id_mismatch')).toHaveLength(5)
-
-    const f2 = report.findings.find(finding => finding.code === 'f2_scorer_id_absent')!
-    expect(f2.details?.configuredScorerId).toBe('CustomComponent-xxaEq')
-    expect(f2.details?.codeHashMatchNodeIds).toEqual(['CustomComponent-uFKzq'])
-
-    const f5Absent = report.findings.filter(finding => finding.code === 'f5_component_id_absent')
-    expect(f5Absent).toHaveLength(3)
-    for (const finding of f5Absent) expect(finding.details?.codeHashMatchNodeIds).toHaveLength(1)
-    expect(report.f5?.components.map(component => component.configuredId).sort()).toEqual([
-      'CustomComponent-6GpeV', 'CustomComponent-J7TnS', 'CustomComponent-s8Ihp',
-    ].sort())
+    expect(codes).not.toContain('f2_scorer_id_absent')
+    expect(codes).not.toContain('f5_component_id_absent')
+    expect(codes).not.toContain('f5_edges_hash_mismatch')
+    expect(codes).not.toContain('f5_folder_identity_absent')
+    expect(codes.filter(code => code === 'flow_id_mismatch')).toHaveLength(0)
   })
 
   test('requires exactly the three reviewed F5 component pins offline', () => {
