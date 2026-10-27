@@ -1,7 +1,27 @@
 /** Runtime config from the environment. Secrets are never hardcoded, logged, or returned. */
+import { fileURLToPath } from 'node:url'
+import { unprotectEnvironment } from './security/private-files.cjs'
 
 /** Thrown when required configuration is absent. Messages never include values. */
 export class ConfigError extends Error {}
+
+export interface SecurityConfig { backendOrigin: string; webOrigin: string; allowLocalHttp: boolean }
+
+export function loadSecurityConfig(environment: Record<string, string | undefined> = process.env): SecurityConfig {
+  unprotectEnvironment(environment)
+  const allowLocalHttp = environment.SYNCARE_ALLOW_LOCAL_HTTP === 'true'
+  const parse = (value: string | undefined): string => {
+    let url: URL
+    try { url = new URL(value ?? '') } catch { throw new ConfigError('An explicit application origin is required.') }
+    const local = ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)
+    if (url.username || url.password || url.pathname !== '/' || url.search || url.hash ||
+        (url.protocol !== 'https:' && !(allowLocalHttp && local && url.protocol === 'http:'))) {
+      throw new ConfigError('Application origins require HTTPS or the explicit loopback development exception.')
+    }
+    return url.origin
+  }
+  return { backendOrigin: parse(environment.SYNCARE_BACKEND_ORIGIN), webOrigin: parse(environment.SYNCARE_WEB_ORIGIN), allowLocalHttp }
+}
 
 function required(name: string): string {
   const value = process.env[name]
@@ -30,24 +50,24 @@ export interface AppConfig {
   host: string
   port: number
   readOnly: boolean
-  /** Bearer token for every /api/v1 route. Empty means the API is locked, not open. */
+  /** Server-only infrastructure credential for operator health; never a user session. */
   apiKey: string
 }
 
 /** Build config; missing required values fail at startup. */
 export function loadConfig(): AppConfig {
+  unprotectEnvironment()
   return {
     langflowBaseUrl: optional('LANGFLOW_BASE_URL', 'http://127.0.0.1:7860').replace(/\/$/, ''),
     langflowApiKey: required('LANGFLOW_API_KEY'),
-    // Default matches F4's container path: /app/langflow/langflow/syncare-review.sqlite3.
-    // scripts/fix-review-db-path.ts repointed the flow here.
+    // Host-side mount target; runtime F4/F5 alignment still needs Q09 verification.
     reviewDbPath: optional(
       'SYNCARE_REVIEW_DB',
-      new URL('../data/langflow/langflow/syncare-review.sqlite3', import.meta.url).pathname,
+      fileURLToPath(new URL('../data/langflow/langflow/syncare-review.sqlite3', import.meta.url)),
     ),
     consoleStateDbPath: optional(
       'SYNCARE_STATE_DB',
-      new URL('../data/console-state.sqlite3', import.meta.url).pathname,
+      fileURLToPath(new URL('../data/console-state.sqlite3', import.meta.url)),
     ),
     host: optional('SYNCARE_HOST', '127.0.0.1'),
     port: Number(optional('SYNCARE_PORT', '8080')),

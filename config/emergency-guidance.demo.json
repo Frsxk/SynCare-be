@@ -1,0 +1,8 @@
+{
+  "content": "Jika mengalami kondisi darurat, hubungi layanan darurat medis 119 atau segera cari pertolongan di IGD terdekat. Jangan menunggu balasan aplikasi.",
+  "contacts": [{ "label": "Darurat medis Indonesia, informasi saja pada demo", "number": "119", "action": "information_only" }],
+  "region": "Indonesia",
+  "verifiedAt": "2026-10-25T12:31:22.303Z",
+  "source": "https://www.kemkes.go.id/id/akses-darurat-medis-119-kini-bisa-melalui-satusehat-mobile",
+  "version": 1
+}

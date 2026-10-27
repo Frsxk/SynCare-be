@@ -1,6 +1,6 @@
-/** App-level tests with an injected flow runner; no live Langflow required. */
+/** Isolated legacy adapter contracts; resource-policy.test.ts covers the public principal gateway. */
 import { describe, expect, test } from 'bun:test'
-import { createApp } from '../src/app.ts'
+import { createLegacyApp as createApp } from '../src/legacy-app.ts'
 import type { AppConfig } from '../src/config.ts'
 import { createFixtureDb } from './fixture-db.ts'
 

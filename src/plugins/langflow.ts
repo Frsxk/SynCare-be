@@ -1,10 +1,12 @@
 /** Langflow client: sync /v1/run plus v2 background jobs for F4 human review. */
+import { unprotectEnvironment } from '../security/private-files.cjs'
 /** The API key is sent only in x-api-key; it never appears in logs, errors, or results. */
 
 /** Inject a mock fetch in tests; defaults to global fetch. */
 type FetchLike = typeof globalThis.fetch
 
 export interface RunFlowOptions {
+  tweaks?: Record<string, Record<string, string | number>>
   /** Per-request timeout in ms. Default 55_000 (under the ~60s client budget). */
   timeoutMs?: number
   /** Optional session id for conversation continuity. */
@@ -118,6 +120,7 @@ const DEFAULT_TIMEOUT_MS = 55_000
 
 /** Read base URL and API key from the environment; throws if the key is missing. */
 function readConfig(): { baseUrl: string; apiKey: string } {
+  unprotectEnvironment()
   const baseUrl = (process.env.LANGFLOW_BASE_URL ?? 'http://127.0.0.1:7860').replace(/\/$/, '')
   const apiKey = process.env.LANGFLOW_API_KEY ?? ''
   if (!apiKey) {
@@ -210,6 +213,7 @@ export async function runFlow(
   if (opts.sessionId) {
     body.session_id = opts.sessionId
   }
+  if (opts.tweaks) body.tweaks = opts.tweaks
 
   const { json } = await fetchJson<unknown>(
     'POST',

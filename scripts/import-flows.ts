@@ -1,3 +1,5 @@
+import {unprotectEnvironment} from '../src/security/private-files.cjs'
+unprotectEnvironment()
 /** Import the five verified flows and print the name -> id map. */
 /** Secrets come from the environment only and are never printed. */
 import { readdir, readFile } from 'node:fs/promises'
