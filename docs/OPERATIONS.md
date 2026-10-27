@@ -8,6 +8,9 @@ Public URL: <https://syncare.trackover.web.id>
 > `Authorization: Bearer <token>`.
 Backend: Elysia on Bun, thin proxy over Langflow. Langflow owns all clinical logic.
 
+Private material setup, Linux key provisioning, demo seeding, and the explicit
+protection CLI are documented in [cross-platform-secrets.md](cross-platform-secrets.md).
+
 ---
 
 ## systemd unit name

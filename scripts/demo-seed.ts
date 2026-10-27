@@ -19,7 +19,7 @@ import { CursorCodec } from '../src/modules/contracts/pagination.ts'
 import { runFlow, type FlowRunResult } from '../src/plugins/langflow.ts'
 import { FlowGateway, type F2Binding, type F2Context } from '../src/modules/workflows/flow-gateway.ts'
 import { loadConfig } from '../src/config.ts'
-import { writePrivateJson } from '../src/security/private-files.cjs'
+import { readPrivateJson, writePrivateJson } from '../src/security/private-files.cjs'
 
 export interface DemoRoot { root: string; parent: string; mode: 'local-synthetic' }
 export interface DemoRunners { kind: 'verified_langflow' | 'injected_fixture'; runF1: (source: string, sessionId: string) => Promise<FlowRunResult>; runF2: (context: F2Context) => Promise<FlowRunResult> }
@@ -46,12 +46,18 @@ function clinicalContents(root: string) {
 function guard(options: DemoRoot, existing: boolean) {
   if (options.mode !== 'local-synthetic' || process.env.NODE_ENV === 'production') refuse('synthetic_mode_required')
   if (!isAbsolute(options.root) || !isAbsolute(options.parent)) refuse('absolute_test_root_required')
-  const parent = resolve(options.parent), root = resolve(options.root)
-  if (!existsSync(parent) || !lstatSync(parent).isDirectory() || lstatSync(parent).isSymbolicLink()) refuse('invalid_test_parent')
-  if (comparable(realpathSync.native(parent)) !== comparable(parent) || comparable(dirname(root)) !== comparable(parent)) refuse('test_parent_mismatch')
-  if (within(resolve(liveRoot), root) || !/^syncare-demo-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(basename(root))) refuse('unsafe_demo_root')
+  const declaredParent = resolve(options.parent), declaredRoot = resolve(options.root)
+  if (within(resolve(liveRoot), declaredRoot) || !/^syncare-demo-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(basename(declaredRoot))) refuse('unsafe_demo_root')
+  if (!existsSync(declaredParent) || !lstatSync(declaredParent).isDirectory() || lstatSync(declaredParent).isSymbolicLink()) refuse('invalid_test_parent')
+  if (comparable(dirname(declaredRoot)) !== comparable(declaredParent)) refuse('test_parent_mismatch')
+  const parent = realpathSync.native(declaredParent), root = join(parent, basename(declaredRoot))
+  if (within(resolve(liveRoot), root)) refuse('unsafe_demo_root')
+  const keyPath = process.env.SYNCARE_PRIVATE_KEY_FILE
+  const physicalKeyPath = keyPath && isAbsolute(keyPath) && existsSync(keyPath) ? realpathSync.native(keyPath) : keyPath
+  if (process.platform !== 'win32' && physicalKeyPath && isAbsolute(physicalKeyPath) && within(root, resolve(physicalKeyPath))) refuse('private_key_inside_demo_root')
   if (existing) {
     if (!existsSync(root) || !lstatSync(root).isDirectory() || lstatSync(root).isSymbolicLink() || comparable(realpathSync.native(root)) !== comparable(root)) refuse('unsafe_demo_root')
+    if (process.platform !== 'win32' && (lstatSync(root).mode & 0o077) !== 0) refuse('unsafe_demo_root_permissions')
     for (const entry of readdirSync(root)) {
       const stat = lstatSync(join(root, entry))
       if (!inventory.has(entry) || !stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) refuse('unowned_demo_content')
@@ -71,8 +77,15 @@ function manifestAt(options: DemoRoot) {
 export function inspectDemo(options: DemoRoot) {
   const { root, manifest } = manifestAt(options)
   if (manifest.stage !== 'READY') refuse('incomplete_demo_requires_manual_inspection')
-  const credentials = readFileSync(join(root, 'credentials-private.json'), 'utf8')
-  if (hash(credentials) !== manifest.credentialHash) refuse('demo_credentials_changed')
+  const credentialsPath = join(root, 'credentials-private.json')
+  const credentialsText = readFileSync(credentialsPath, 'utf8')
+  if (hash(credentialsText) !== manifest.credentialHash) refuse('demo_credentials_changed')
+  const credentials = readPrivateJson(credentialsPath) as { operator?: { password?: unknown }; cursorSecret?: unknown }
+  if (typeof credentials?.operator?.password !== 'string' || typeof credentials.cursorSecret !== 'string') refuse('invalid_demo_credentials')
+  if (process.platform !== 'win32') {
+    const stat = lstatSync(credentialsPath)
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1 || (stat.mode & 0o077) !== 0) refuse('unsafe_demo_credentials')
+  }
   if (clinicalContents(root) !== manifest.contentHash) refuse('demo_records_changed')
   const db = new Database(join(root, 'state.sqlite3'), { readonly: true, strict: true })
   try {
@@ -91,17 +104,17 @@ export function inspectDemo(options: DemoRoot) {
 export async function seedDemo(options: DemoRoot, runners: DemoRunners) {
   if (existsSync(options.root)) return inspectDemo(options)
   const { root, rootId, parentHash } = guard(options, false)
-  mkdirSync(root)
+  mkdirSync(root, { mode: 0o700 })
   const manifest: DemoManifest = { version: 1, rootId, parentHash, syntheticOnly: true, stage: 'INITIALIZING', runnerKind: runners.kind, canonicalBinding: 'not_configured', createdAt: new Date().toISOString(), accountIds: [], cases: [] }
   const save = () => writeFileSync(join(root, 'manifest.json'), JSON.stringify(manifest, null, 2), { mode: 0o600 })
   save()
   const credentials = { operator: { identifier: `operator-${rootId}@synthetic.invalid`, password: randomBytes(32).toString('base64url') },
     nurses: ['low', 'high'].map(slot => ({ slot, identifier: `nurse-${slot}-${rootId}@synthetic.invalid`, password: randomBytes(32).toString('base64url') })),
     patients: ['low', 'high'].map(slot => ({ slot, identifier: `patient-${slot}-${rootId}@synthetic.invalid`, password: randomBytes(32).toString('base64url') })), cursorSecret: randomBytes(48).toString('base64url') }
-  const privateText = JSON.stringify(credentials, null, 2)
-  if (process.platform === 'win32') writePrivateJson(join(root, 'credentials-private.json'), credentials)
-  else refuse('windows_protection_required')
-  manifest.credentialHash = hash(readFileSync(join(root, 'credentials-private.json'), 'utf8')); save()
+  const credentialsPath = join(root, 'credentials-private.json')
+  writePrivateJson(credentialsPath, credentials)
+  if ((readPrivateJson(credentialsPath) as typeof credentials).operator.password !== credentials.operator.password) refuse('private_roundtrip_failed')
+  manifest.credentialHash = hash(readFileSync(credentialsPath, 'utf8')); save()
   const store = Store.open({ path: join(root, 'state.sqlite3'), create: true, reviewPath: join(root, 'review-not-bound.sqlite3') })
   const sessions: string[] = []
   let auth: AuthService | undefined
@@ -169,24 +182,35 @@ export function resetDemo(options: DemoRoot, confirmation: string) {
   rmdirSync(root)
 }
 
-if (import.meta.main) {
+export interface DemoCliIo { stdout?: (line: string) => void; stderr?: (line: string) => void }
+
+export async function main(args: string[], io: DemoCliIo = {}): Promise<number> {
+  const stdout = io.stdout ?? ((line: string) => console.log(line)), stderr = io.stderr ?? ((line: string) => console.error(line))
   try {
-    const args = Bun.argv.slice(2), command = args[0]
-    const flag = (name: string) => args.find(value => value.startsWith(`--${name}=`))?.slice(name.length + 3) ?? ''
+    const command = args[0]
+    const flag = (name: string) => {
+      const prefix = `--${name}=`, inline = args.find(value => value.startsWith(prefix))
+      if (inline) return inline.slice(prefix.length)
+      const index = args.indexOf(`--${name}`), value = index >= 0 ? args[index + 1] : undefined
+      return value && !value.startsWith('--') ? value : ''
+    }
     if (!args.includes('--local-synthetic')) refuse('synthetic_mode_required')
     const options: DemoRoot = { root: flag('root'), parent: flag('parent'), mode: 'local-synthetic' }
-    if (command === 'inspect') { const manifest = inspectDemo(options); console.log(JSON.stringify({ status: 'ready', rootId: manifest.rootId, cases: manifest.cases.length, runnerKind: manifest.runnerKind, credentialsPrinted: false, canonicalBinding: manifest.canonicalBinding })) }
-    else if (command === 'reset') { resetDemo(options, flag('confirm')); console.log(JSON.stringify({ status: 'isolated_root_reset', credentialsPrinted: false })) }
+    if (command === 'inspect') { const manifest = inspectDemo(options); stdout(JSON.stringify({ status: 'ready', rootId: manifest.rootId, cases: manifest.cases.length, runnerKind: manifest.runnerKind, credentialsPrinted: false, canonicalBinding: manifest.canonicalBinding })) }
+    else if (command === 'reset') { resetDemo(options, flag('confirm')); stdout(JSON.stringify({ status: 'isolated_root_reset', credentialsPrinted: false })) }
     else if (command === 'init') {
       const config = loadConfig(), flows = JSON.parse(readFileSync(new URL('../flows.json', import.meta.url), 'utf8'))
       const bindingPath = process.env.SYNCARE_F2_CONTEXT_CONFIG
       const binding = bindingPath ? JSON.parse(readFileSync(bindingPath, 'utf8')) as F2Binding : null
       const gateway = new FlowGateway({ binding, baseUrl: config.langflowBaseUrl, apiKey: config.langflowApiKey })
       const manifest = await seedDemo(options, { kind: 'verified_langflow', runF1: (source, sessionId) => runFlow(flows.f1_register_discharge_summary, source, { sessionId }), runF2: context => gateway.runF2(context) })
-      console.log(JSON.stringify({ status: 'ready', rootId: manifest.rootId, cases: manifest.cases.length, credentialsPrinted: false, canonicalBinding: manifest.canonicalBinding }))
+      stdout(JSON.stringify({ status: 'ready', rootId: manifest.rootId, cases: manifest.cases.length, credentialsPrinted: false, canonicalBinding: manifest.canonicalBinding }))
     } else refuse('explicit_command_required')
+    return 0
   } catch (error) {
     const code = error instanceof Error && /^[a-z_]+$/.test(error.message) ? error.message : 'demo_operation_failed'
-    console.error(JSON.stringify({ status: 'not_ready', code, automaticReset: false, credentialsPrinted: false })); process.exitCode = 1
+    stderr(JSON.stringify({ status: 'not_ready', code, automaticReset: false, credentialsPrinted: false })); return 1
   }
 }
+
+if (import.meta.main) { const exitCode = await main(Bun.argv.slice(2)); if (exitCode !== 0) process.exitCode = exitCode }
