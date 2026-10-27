@@ -442,7 +442,7 @@ describe('reviewed reference bundle', () => {
 
   test('collects secret-named environment values even when SECRET is not the key suffix', () => {
     const environment = {
-      AWS_SECRET_ACCESS_KEY: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+      AWS_SECRET_ACCESS_KEY: 'synthetic-aws-secret-access-key-value',
       SYNCARE_CURSOR_SECRET: 'synthetic-cursor-secret-value',
       GEMINI_API_KEY: 'synthetic-gemini-api-key',
       AWS_REGION: 'eu-west-1',
