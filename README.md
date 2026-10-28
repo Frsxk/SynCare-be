@@ -1,261 +1,651 @@
-# SynCare-be
+# SynCare backend
 
-Current M11 closed locally2026-10-27: [report](../docs/planning/mvp-verification-report.md), [operator/recovery runbook](../docs/planning/demo-runbook.md).205 tests/1452 assertions/56 files and TypeScript PASS. Configured secrets/private account files DPAPI-protected on this Windows account; values unchanged, runtime/host readers compatible, malformed/unsupported envelopes fail closed. Correlated known engine timeout failures map to existing EXPIRED; generic/missing/foreign errors remain honest. Real separate-engine restart/same gate/deadline/missing tests PASS; primary engine unchanged. Original auto expiry/indefinite retention/deployment not promised. Actual protected F1/F2 seed/reopen and F5 PASS. Native/deployed deferred, no clinical rule/schema/new API. Earlier entries historical.
+SynCare is a post-discharge care orchestration demo for CHF patients in
+Indonesian hospitals, built for the Hacktiv8 x IBM hackathon. This repository is
+the backend: a Bun/Elysia HTTP service that owns accounts, sessions, patient
+state and the care workflow, and delegates every clinical decision to five
+Langflow flows.
 
-M11 current2026-10-27: [verification](../docs/planning/mvp-verification-report.md), [guarded seed/runbook](../docs/planning/demo-runbook.md), [safe fixture manifest](../docs/planning/demo-fixture-manifest.md). Final200 tests/1435 assertions/54 files and TypeScript PASS; security matrix and safe isolated seed added. Actual F1/F2 cold/reopen/explicit owned reset/reseed PASS; active-data F5 answer4 citations/emergency PASS. Seed has no canonical binding and never resets active data. M11 IN_PROGRESS/NOT_READY for unconditional acceptance: private plaintext handoff/.env and Q10 engine restart/expiry/retention remain open; patient browser storage also remains a client boundary. No model/flow/schema/product endpoint change. Earlier entries historical.
-
-## Current M10 integration evidence,2026-10-26
-
-M01-M09 accepted; M10 local browser scope complete awaiting ACC, [report](../docs/planning/SYNCARE-M10-VERIFICATION.md). Final192 tests/1143 assertions/52 files and TypeScript PASS. Existing APIs/stores/clinical flows unchanged; new scripts prepare exactly two synthetic accounts and verify monitoring/canonical/normal-restart/isolated failure/owned terminal records. Never rerun initialization with replacement UUIDs or reset old data. Private outputs live in ignored data/m10-*.json; no tokens printed. User Langflow stays running; controlled failures use isolated operational clones and an unreachable own loopback target. No canonical writer change, migration, commit/push/deploy/deletion. Native/deployed/whole-MVP and M11 remain separate; M11 unauthorized before M10 ACC.
-
-## Current local M09 behavior,2026-10-26
-
-M01-M08 accepted; four M09 tasks/CP09 locally complete awaiting ACC. POST `/api/v1/patients/:id/questions` exact `{query}` uses current self/assigned identity, unique server session, verified real F5 binding and canonical latest registered approval/quote proof. Answer/refusal/emergency/error are typed, text/refusal unchanged, no raw diagnostics/new clinical rules. Legacy `/answers` retains request shape but now returns the same typed envelope. Same-patient retrieval serializes within this process; no durable chat/distributed lock. Existing F5/model/Astra selection and F4 writer unchanged.
-
-[M09 exact contracts/evidence](../docs/planning/SYNCARE-M09-VERIFICATION.md):192 backend tests/typecheck, actual36 API checks/five cases, Flutter/Next integration/compiled/production evidence, preserved selected approval hash. [Recovery](../docs/planning/recovery-runbook.md) covers source drift, missing proof/uncertain inference. Start existing config with `bun run src/index.ts`; no new seed/migration. Native/deployed/whole-MVP open, M10-M11 unauthorized. Earlier current-status notes historical.
-
-## Current local M08 behavior,2026-10-26
-
-M01-M07 accepted; DL-016/Q08 authorize only fourteen M08 tasks/CP08, locally complete awaiting ACC. Applied0008 persists source-bound guarded F3 drafts, actual F4 registry/events/single gate claims and canonical approval links. C1-C7 are mounted with account/current capability/assignment, strict input/version/UUID and private scoped reads. F4 alone writes canonical approved_plans/audit_log; Bun revalidates exact matching evidence/physical F4-F5 path before C7 or legacy publication. Independent collector/startup recovery never automatically resends unknown start/resume. Actual Request Changes produces revisedDRAFT/new explicit gate; escalate/fallback stay plan outcomes, not M07 alerts.
-
-Explicit audited access setup `bun scripts/initialize-review-access.ts` uses private operator stdin and existing eligible assigned nurses; no startup reseed. [M08 exact contracts/evidence](../docs/planning/SYNCARE-M08-VERIFICATION.md) records183 backend tests, actual102 API checks/F5, actual backend restart and isolated canonical-boundary crash. [Recovery runbook](../docs/planning/recovery-runbook.md) covers missing/ambiguous proof, uncertain delivery and observed timeout/retention limits. Start existing backend with `bun run src/index.ts`. M09-M11/native/deployed/whole-MVP gates open. All earlier current-status paragraphs below are historical.
-
-## Current local M07 behavior,2026-10-26
-
-M01-M06 accepted, Q07 approved; M07 locally complete awaiting ACC. New0007 stores immutable exact successful F2 acute source and append-only operational actions. Separate local worker reconciles missing enqueue/expired or failed local materialization from persisted sources, without rerunning F2. Earlier migrations0001-0006, Langflow definitions/shared defaults, Astra and canonical F4 approval ownership unchanged. Known urgent outcome/guidance stays available even if alert persistence fails.
-
-E1 GET `/api/v1/alerts` and `/api/v1/alerts/:id`, E3 GET `/api/v1/patients/:id/alerts`, E2 POST `/api/v1/alerts/:id/actions` are authenticated/private/no-store. Current alert.manage plus assignment, bounded scoped cursors/status filters, exact action/expectedVersion/original UUID and transactional receipts/history apply. Shared detail path redacts internal notes/actor/type/actual-action time for own patient. PENDING_REVIEW -> ACKNOWLEDGED -> IN_PROGRESS -> RESOLVED; follow-up category/actual time/internal note and prior-followup closure summary required. Optional patientSummary deliberately public; no read acknowledgment/direct resolve/reopen or real call/dispatch claim.
-
-Run `bun run src/index.ts` with existing local configuration. Explicit operator setup: `bun scripts/initialize-alert-access.ts`, private stdin `{credentials:{identifier,password},nurseIdentifiers:[...]}`; existing active assigned nurses only, audited grants without assignment expansion. Do not repeat account initialization or reset data. [M07 exact contracts/verification](../docs/planning/SYNCARE-M07-VERIFICATION.md) records163 backend tests, actual94 API checks/three sources, exact restart and clients. Two closed synthetic examples and one pending demo retained. M08-M11 unauthorized; native/deployed gates open. All earlier milestone status paragraphs below are historical.
-
-## Current local M06 behavior, 2026-10-26
-
-M01-M05 accepted; M06 locally complete, awaiting ACC. H4 now supports manual scheduling, completion, cancellation and rejection with one transactional expectedVersion/idempotency/history writer. H5 GET `/api/v1/homecare/staff?patientId=...` returns bounded currently eligible registered staff already assigned to that scoped patient. Same-staff Scheduled overlap is rejected with booking_schedule_conflict409; half-open adjacent slots are allowed. New schedules require a future canonical UTC interval plus Asia/Jakarta. Completion requires an actual nonfuture time at/after confirmed start and a patient-visible note. Terminal bookings cannot reopen; rescheduling remains deferred.
-
-Patient cancellation: own Requested/Under Review only. Assigned booking.manage nurses may cancel those states or Scheduled, and reject Under Review. Reasons are required and patient-visible. Stale versions409 precede state-specific denial; committed intents replay without a duplicate event, while current access is rechecked. H3 global queue optionally filters active/all/one exact status before pagination; omission retains all. Explicit staff registration: `bun scripts/initialize-homecare-staff.ts`, private stdin `{credentials:{identifier,password},staff:[{identifier,displayName}]}`. Existing active eligible nurses only; no grant/assignment expansion or startup reseed.
-
-Applied SQL0001-0006 unchanged. Backend153 tests/879 assertions,61 actual lifecycle checks, six-booking/21-history/21-receipt exact restart and prior M05 snapshot PASS. [M06 verification](../docs/planning/SYNCARE-M06-VERIFICATION.md) contains client/build evidence and native/deployment limits. No real dispatch, Langflow/Astra write or clinical decision change. M07+ not authorized.
-
-## Historical M05 behavior, 2026-10-26
-
-Homecare API-H1-H4 is implemented: active services, own patient booking request, scoped patient/nurse list/detail, and booking.manage Requested -> Under Review with expectedVersion and idempotent mutation receipts. Preferred UTC interval with Asia/Jakarta is separate from nullable confirmed staff/slot. Immutable snapshot/history lives in new migration0006;0001-0005 unchanged. The approved service is synthetic DKI Jakarta care, not availability/dispatch/payment. Scheduling and terminal action endpoints remain M06.
-
-Explicit operator setup: `bun scripts/initialize-homecare.ts`, private stdin `{credentials:{identifier,password},nurseIdentifiers:[...]}`. It checks administrative authority, inserts only the missing approved catalog entry and grants existing active demo nurses booking.manage through audited current-version provisioning. It never reactivates an inactive service or runs as startup seed. Verify with `bun scripts/verify-local-homecare.ts` and `bun scripts/verify-homecare-restart.ts prepare|verify`; credentials/evidence remain ignored under data/. M05 does not call or change Langflow/Astra/F4. [M05 verification](../docs/planning/SYNCARE-M05-VERIFICATION.md) records backend145/811 assertions and actual client/restart evidence. M05 awaits user ACC; M06+ not authorized.
-
-## Current local M04 behavior, 2026-10-25
-
-API-M1/M2/M3/E4 are implemented: self-only POST `/api/v1/patients/:id/checkins`, scoped GET list at the same path, GET `/api/v1/checkins/:id`, assigned-nurse GET `/api/v1/monitoring`, and authenticated GET `/api/v1/emergency-guidance`. The common envelope carries persisted records; report commit precedes asynchronous F2 processing. Repeated intent keys reconcile one report. A new key explicitly creates a new report, including on the same day.
-
-Migration 0005 preserves immutable report/baseline and processing evidence. F2 uses numeric original F1 of the current confirmed source, with server-owned patient/session and verified per-run tweaks; absent baseline saves BLOCKED_BASELINE without a default score. Live scorer/node/code binding is rechecked before invocation. Timeout/expired delivery stays UNKNOWN without blind replay. Acute F2 creates durable ALERT_F2 work only; M07 received/action lifecycle is not implemented. trigger_plan_review remains separate and cannot overwrite F1 confirmation.
-
-Set explicit `SYNCARE_GUIDANCE_CONFIG` and `SYNCARE_F2_CONTEXT_CONFIG` paths to the reviewed demo JSON files in `config/`. Missing/unverified guidance is unavailable, with no number fallback. Approved 119 contact is information-only: no telephone call or active tel action. API-P5 now connects actual latestReport and separate latestAnalysis; plan/booking/alert-count ports remain unavailable. Raw legacy F2 stays denied; the owned report API is its M04 path. See [M04 verification](../docs/planning/SYNCARE-M04-VERIFICATION.md) for evidence and platform limits.
-
-## M03 source and confirmation baseline
-
-Persisted discharge/assessment/confirmation producers are now mounted behind account/capability/assignment checks: POST `/api/v1/patients/:patientId/discharges`, POST `/api/v1/discharges/:dischargeId/assessments`, GET `/api/v1/patients/:patientId/assessments`, POST `/api/v1/assessments/:assessmentId/confirmations`. Raw legacy F1 remains denied. Migration 0004 preserves exact source, upstream response and confirmation history. Q03 requires a new assessment and explicit confirmation after each source change.
-
-Approved R02 adds GET `/api/v1/patients/:patientId/overview`: scoped profile, current source, confirmed risk and staff-only latest assessment. Patient source text is redacted. Future plan/report/analysis/booking/alert ports are explicitly unavailable, not zero. Actual dashboard and Flutter CP03 consumers are connected. [M03 verification](../docs/planning/SYNCARE-M03-VERIFICATION.md) records 123 backend tests/639 assertions, 28 actual F1 checks, restart evidence and client verification. M03 is completed locally and awaiting user ACC; no full clinical parity or deployment acceptance is claimed. The earlier [backend checkpoint](../docs/planning/SYNCARE-M03-BACKEND-CHECKPOINT.md) is historical.
-
-## Current local M02 behavior, 2026-10-25
-
-`src/index.ts` mounts account sessions and principal/resource authorization. Login is `POST /api/v1/auth/login`; restore/logout are `GET`/`DELETE /api/v1/auth/session`. Sessions last 24 hours without automatic extension. The infrastructure key authorizes operator health only, and cannot unlock patient/domain routes.
-
-New implemented contracts: API-A1/A2/A3 and API-P1/P2/P3. Authorized nurses create patient profiles and linked accounts; the private operator provisions nurses, manages grants and assigns/revokes patient scope. Profiles, sessions and operational audits persist in the separate operational SQLite store. F4 remains the sole approval writer; Astra retrieval and clinical flow code are unchanged.
-
-Raw discharge/check-in/draft/review/job-stream routes are denied publicly until their domain milestones establish stored ownership/provenance. Their original clinical adapter is preserved in `src/legacy-app.ts` for isolated contract regression; it is reached publicly only through the scoped gateway. Scoped plan reads and F5 remain available. Legacy response fields are preserved apart from patient-only reviewer-note redaction and filtering out foreign/unattributed rows.
-
-The older API/flow guide below describes the legacy clinical adapter and deployment baseline, not a shared-key bypass of the M02 gateway. See [private account procedure](../docs/planning/demo-account-procedure.md) and [M02 verification](../docs/planning/SYNCARE-M02-VERIFICATION.md) for current configuration, exact domain envelopes and evidence. Startup requires an explicitly prepared operational store, origins and private cursor key; it never resets or silently seeds the DB.
-
-Backend for **SynCare**: post-discharge care orchestration for CHF patients
-in Indonesian hospitals. Built for the Hacktiv8 x IBM hackathon.
-
-**Langflow owns every clinical decision.** This backend is a thin, bearer-token
-protected proxy in front of it plus a read-only view of the state the flows
-write. It contains no scoring, no tiering, no red-flag detection, no drafting,
-and no approval logic.
-
-> Synthetic engineering demo. Not clinically validated and not a calibrated
+> **Synthetic engineering demo.** Not clinically validated and not a calibrated
 > risk prediction model. No diagnosis, no medication changes, no emergency
 > advice. Human clinical oversight required. FHIR-shaped output is not a
 > SATUSEHAT submission.
 
----
+## What this service owns
+
+- Account login, 24-hour sessions, nurse capabilities and patient assignments.
+- Operational records: patient profiles, discharge source versions, F1
+  assessments and risk confirmations, check-ins, alerts, homecare bookings,
+  care-plan drafts and review state.
+- Optimistic version checks, idempotency receipts, append-only history and
+  operational audit entries.
+- Request-origin enforcement, authentication, authorization and consistent
+  no-store responses.
+- A read-only demo mode.
+
+It contains **no clinical scoring, tiering, red-flag detection, plan drafting or
+approval logic**. Those live inside Langflow. It also never writes the canonical
+approval tables: **F4 is the only writer** of `approved_plans` and `audit_log`.
+The backend opens that database read-only and revalidates the stored approval
+evidence before it returns a plan.
 
 ## Architecture
 
 ```
-SynCare-fe (separate repo)
-      │  Authorization: Bearer <token>
-      ▼
-  Elysia (this repo)  ──thin proxy──▶  Langflow 1.12.3 (5 flows)
-      │                                    │
-      │  read-only SQLite                  │ sole writer
-      ▼                                    ▼
-  approved_plans / audit_log  ◀──────  syncare-review.sqlite3
+SynCare-fe (separate repository)
+        │  Authorization: Bearer sc_…   session token from /api/v1/auth/login
+        ▼
+  Elysia on Bun ────────── x-api-key ─────────▶  Langflow 1.12.3
+        │                                          │  F1–F5 clinical flows
+        │  operational SQLite                      │  F4 is the sole writer
+        │  accounts · patients · check-ins ·       ▼
+        │  alerts · bookings · review state   syncare-review.sqlite3
+        │                                     approved_plans · audit_log
+        └──────── read-only, evidence-checked ─────▶
 ```
 
-- **Langflow** (Docker, `langflowai/langflow:1.12.3`, one worker) runs the five
-  flows and is the only component permitted to make a clinical decision.
-- **This app** forwards requests verbatim and reads the review DB with
-  `readonly: true`. It has no write path to clinical state at all.
-- **F4 is the only writer** of `approved_plans` and `audit_log`.
-- F5 fails closed: no approval means no answer.
+- **Langflow** runs as one Docker worker
+  (`langflowai/langflow:1.12.3`). It is the only component allowed to make a
+  clinical decision.
+- **This service** owns application state and authorization. It calls Langflow
+  server-side with `x-api-key`; the browser never receives that key and never
+  calls Langflow directly.
+- **F4** writes canonical approvals. The backend reads `approved_plans` and
+  `audit_log` with a read-only SQLite connection and verifies the review,
+  decision and artifact fingerprint before serving an approval.
+- **F5 fails closed**: no registered approval means no grounded answer.
 
 ### The five flows
 
-| Key | Flow | Role |
-|---|---|---|
-| `f1_register_discharge_summary` | Register discharge summary | Gemini extracts the episode; deterministic components score and tier it |
-| `f2_record_patient_checkin` | Record patient check-in | Routine adjustment, or immediate escalation on a red flag |
-| `f3_draft_followup_plan` | Draft follow-up plan | Builds the plan + SATUSEHAT-shaped artifacts; **refuses to invent a follow-up date** |
-| `f4_review_care_plan` | Review care plan | Human-in-the-loop gate; suspends the job until a person decides |
-| `f5_answer_care_questions` | Answer care questions | Grounded RAG over Astra with a per-patient collection; refuses unapproved patients |
+| Key | Flow | Role | Backend entry point |
+|---|---|---|---|
+| `f1_register_discharge_summary` | Register discharge summary | Gemini extracts the episode; a deterministic component scores and tiers it | `POST /api/v1/discharges/:dischargeId/assessments` |
+| `f2_record_patient_checkin` | Record patient check-in | Re-stratifies against the confirmed baseline; routine outcome or immediate escalation | `POST /api/v1/patients/:patientId/checkins` (asynchronous) |
+| `f3_draft_followup_plan` | Draft follow-up plan | Builds the plan and SATUSEHAT-shaped artifacts; refuses to invent a follow-up date | `POST /api/v1/patients/:patientId/care-plan-drafts` |
+| `f4_review_care_plan` | Review care plan | Human-in-the-loop gate; suspends the job until a reviewer decides | `POST /api/v1/care-plan-drafts/:draftId/reviews` |
+| `f5_answer_care_questions` | Answer care questions | Per-patient grounded retrieval with Astra DB and a Chroma fallback; refuses unapproved patients | `POST /api/v1/patients/:patientId/questions` |
 
----
+## Authentication and authorization
 
-## API
+### Sessions
 
-> **Langflow must be running.** It is the clinical engine; this backend cannot
-> serve F1-F5 without it. Only these routes work while it is down:
-> `/api/health`, `/api/v1/flows`, `/api/v1/plans`, `/api/v1/plans/:patientId`.
-> They read local SQLite and `flows.json` only.
+`POST /api/v1/auth/login` exchanges an identifier and password for a session:
 
-Base URL in production: `https://syncare.trackover.web.id`
+```json
+{ "identifier": "nurse@example.invalid", "password": "…" }
+```
 
-In the isolated legacy adapter, `/api/*` uses an internal bearer. In the current public application, use account sessions as described above; the infrastructure key is restricted to health.
-`/` and all other paths return `404`; this service serves no HTML.
+```json
+{
+  "data": {
+    "sessionToken": "sc_<43-character-token>",
+    "expiresAt": "2026-10-29T09:00:00.000Z",
+    "principal": { "id": "…", "role": "nurse", "capabilities": ["review.decide"] }
+  },
+  "requestId": "…"
+}
+```
 
-| Method | Path | Notes |
-|---|---|---|
-| `GET` | `/api/health` | Liveness, Langflow reachability, flow-manifest completeness. Gated. |
-| `GET` | `/api/v1/flows` | Canonical flow-key → UUID map |
-| `GET` | `/api/v1/plans` | `{ plans, audit }` newest-first, read-only |
-| `GET` | `/api/v1/plans/:patientId` | `404` when no approved plan exists |
-| `POST` | `/api/v1/discharge` | F1. Body: `{ input_value }` |
-| `POST` | `/api/v1/checkins` | F2. Body: `{ input_value }` |
-| `POST` | `/api/v1/plans/draft` | F3. Body: `{ patient_id, followup_date, hotline, f1_scored_output }` |
-| `POST` | `/api/v1/reviews` | F4. Body: `{ draft, session_id? }` → `{ jobId }` |
-| `POST` | `/api/v1/reviews/:jobId/resume` | Body: `{ request_id, action_id, actor, reviewer_note? }` |
-| `GET` | `/api/v1/reviews/:jobId/events` | SSE approval feed (see below) |
-| `POST` | `/api/v1/answers` | F5. Body: `{ patient_id, query }` |
+- Send the token as `Authorization: Bearer <sessionToken>`.
+- Tokens are stored as SHA-256 hashes. Sessions last **24 hours**, with no
+  sliding renewal.
+- `GET /api/v1/auth/session` returns the current principal and expiry.
+- `DELETE /api/v1/auth/session` revokes the current session and returns `204`.
+- Passwords are hashed with Argon2id and must be 12–128 characters.
+- Login is throttled per identifier and globally; repeated failures return
+  `429 rate_limited`.
 
-Flow output is returned **verbatim**. The backend never re-scores, re-tiers, or
-softens what a flow emitted.
+### Roles and capabilities
+
+A **patient** account is linked to one patient record and can only act on
+itself. A **nurse** account sees only patients assigned to it, plus the
+capabilities explicitly granted to the account.
+
+| Capability | Allows |
+|---|---|
+| `patient.manage` | Create/update patient profiles and append discharge source versions |
+| `patient.provision` | Create a login for an existing patient |
+| `risk.confirm` | Run F1 assessments and confirm the resulting risk tier |
+| `review.decide` | Draft, read and review care plans, and record the F4 decision |
+| `booking.manage` | View the homecare queue and perform booking transitions |
+| `alert.manage` | View the alert queue and record alert actions |
+| `assignment.manage` | Grant or revoke a nurse's patient assignment |
+| `account.provision`, `capability.manage` | Operator account/capability administration |
+
+Basic profile reads follow this scope; clinical views that need a capability
+require the capability shown in the endpoint tables. Capabilities gate the
+actions that change clinical or operational state.
+
+### Operator credential
+
+`SYNCARE_API_KEY` is a server-side operator credential accepted on
+**`GET /api/health` only**. It is not a user session, cannot call patient or
+domain routes, and is never a shared-token bypass. Client applications must log
+in and use the issued `sc_…` session token.
+
+### Origins
+
+The service is same-origin by design:
+
+- The request URL origin must match `SYNCARE_BACKEND_ORIGIN`.
+- If a browser sends an `Origin` header, it must match `SYNCARE_WEB_ORIGIN`.
+- A loopback HTTP exception is available only when
+  `SYNCARE_ALLOW_LOCAL_HTTP=true` and both origins are loopback.
+- There is no CORS wildcard. Put the API and web app behind one origin rather
+  than relaxing these checks.
+
+## API conventions
+
+All paths below are relative to the service origin.
+
+- JSON only. Request bodies must send `Content-Type: application/json` and are
+  validated against an exact field set. Paginated endpoints also reject unknown
+  query parameters.
+- Successful single-resource responses use
+  `{ "data": …, "requestId": "…" }`. Lists use
+  `{ "data": [...], "nextCursor": "…", "requestId": "…" }`.
+- Errors use
+  `{ "error": { "code", "message", "requestId", "retryable", … } }`.
+  `message` is user-facing Indonesian.
+- `requestId` is generated per request and is safe to quote in support reports.
+- Every response is `Cache-Control: private, no-store` and
+  `X-Content-Type-Options: nosniff`.
+- Timestamps are ISO-8601 UTC. Homecare windows also carry the explicit
+  `Asia/Jakarta` timezone.
+
+### Idempotency
+
+Record-creating and record-transitioning endpoints (patients, discharges,
+assessments, confirmations, check-ins, bookings, alerts, care-plan drafts,
+reviews and assignments) require:
+
+```
+Idempotency-Key: <UUID>
+```
+
+Repeating the same key with the same payload returns the stored result. Reusing
+the key with a different payload returns `409 idempotency_conflict`.
+
+### Concurrency
+
+Mutable resources use `expectedVersion`. A stale write returns
+`409 version_conflict` with `currentVersion` where available. Review decisions
+also require the `requestId` advertised by the current F4 gate; a stale gate or
+unknown action returns `409 version_conflict`.
+
+### Pagination
+
+List endpoints accept `limit` (1–100, default 20) and `cursor`. Cursors are
+HMAC-signed and bound to the caller and collection; do not construct or edit
+them. An opaque `nextCursor` is `null` on the last page.
 
 ### Status codes
 
 | Code | Meaning |
 |---|---|
-| `401` | Missing or wrong bearer token (`WWW-Authenticate: Bearer`) |
-| `403` | Read-only mode blocked a mutating route |
-| `404` | No such route; also returned for unknown `/api` paths **before** auth, so the surface cannot be mapped anonymously |
-| `422` | Body failed schema validation |
-| `502` | Could not open the F4 event stream (Langflow down, or stale job id) |
-| `503` | `langflow_unreachable` / `langflow_timeout`: the clinical engine is down or slow; retry |
-| `503` | `auth_not_configured`: the server has no `SYNCARE_API_KEY` |
+| `401` | Missing, invalid, expired or revoked session; failed login |
+| `403` | Missing capability or scope, cross-origin request, or read-only mode blocking a write |
+| `404` | No such route, or a resource outside the caller's scope |
+| `409` | `version_conflict`, `booking_schedule_conflict` or `idempotency_conflict` |
+| `422` | Validation failure |
+| `429` | Login rate limit |
+| `500` | Unexpected processing failure |
+| `502` | `outcome_unknown` or `invalid_flow_output` from an upstream result |
+| `503` | `dependency_unavailable` (typically Langflow down) or `emergency_guidance_unavailable` |
 
----
+Unknown `/api/*` paths return `404` only after authentication, so the route
+surface cannot be mapped anonymously. `/` and all non-API paths return `404`;
+this service serves no HTML.
 
-## Notes for SynCare-fe
+## Endpoints
 
-**1. Never call Langflow directly.** Its API key lives server-side here on
-purpose. The frontend talks only to this backend.
+### Authentication and accounts
 
-**2. `EventSource` cannot send an `Authorization` header.** For the F4 approval
-feed you must use `fetch()` + `ReadableStream`:
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| `POST` | `/api/v1/auth/login` | public | Exchange identifier/password for a session |
+| `GET` | `/api/v1/auth/session` | session | Current principal and expiry |
+| `DELETE` | `/api/v1/auth/session` | session | Revoke the current session |
+| `POST` | `/api/v1/accounts/patient-links` | `patient.provision` + assignment | Create a patient login |
 
-```js
-const res = await fetch(`/api/v1/reviews/${jobId}/events`, {
-  headers: { Authorization: `Bearer ${token}` },
-})
-const reader = res.body.getReader()
-const decoder = new TextDecoder()
-// Reassemble SSE frames from the decoded chunks.
+### Patients, discharges and risk
+
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| `GET` | `/api/v1/patients` | session | List patients in scope |
+| `POST` | `/api/v1/patients` | `patient.manage` | Create a patient profile |
+| `GET` | `/api/v1/patients/:patientId` | session | Read a patient profile |
+| `PATCH` | `/api/v1/patients/:patientId` | `patient.manage` | Update profile/condition |
+| `GET` | `/api/v1/patients/:patientId/overview` | session | Role-aware dashboard aggregate |
+| `POST` | `/api/v1/patients/:patientId/assignments` | `assignment.manage` | Grant or revoke a nurse assignment |
+| `POST` | `/api/v1/patients/:patientId/discharges` | `patient.manage` | Append a discharge source version |
+| `POST` | `/api/v1/discharges/:dischargeId/assessments` | `risk.confirm` | Run F1; `202` while running, `200` when settled |
+| `GET` | `/api/v1/patients/:patientId/assessments` | `risk.confirm` | Assessment history plus confirmation history |
+| `POST` | `/api/v1/assessments/:assessmentId/confirmations` | `risk.confirm` | Confirm the F1 risk tier |
+
+The patient profile body is exact:
+`{ "profile": { "displayName": "…" }, "initialCondition": null }`.
+`initialCondition` may be a string instead of `null`. A new discharge requires
+`{ "sourceText": "…", "expectedPatientVersion": n }`.
+
+### Check-ins and monitoring
+
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| `POST` | `/api/v1/patients/:patientId/checkins` | patient (self) | Submit a check-in; `202`, F2 runs asynchronously |
+| `GET` | `/api/v1/patients/:patientId/checkins` | session | List check-ins and processing state |
+| `GET` | `/api/v1/checkins/:checkinId` | session | Check-in detail and F2 outcome |
+| `GET` | `/api/v1/monitoring` | nurse | Assigned patients with their latest check-in |
+| `GET` | `/api/v1/emergency-guidance` | session | Configured demo emergency guidance |
+
+A check-in body is `{ "message": "…" }`. F2 needs a confirmed baseline: without
+one the processing attempt is stored as `BLOCKED_BASELINE` and no score is
+invented. Processing states are `PENDING`, `BLOCKED_BASELINE`, `RUNNING`,
+`SUCCEEDED`, `INVALID`, `FAILED` and `UNKNOWN`. A timeout or uncertain delivery
+stays `UNKNOWN` rather than being replayed blindly.
+
+Emergency guidance comes from `SYNCARE_GUIDANCE_CONFIG`. If it is missing or
+unreadable, the route fails closed with `503 emergency_guidance_unavailable`.
+The guidance is information only: this service never places a call.
+
+### Care plans and human review
+
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| `POST` | `/api/v1/patients/:patientId/care-plan-drafts` | `review.decide` | Run F3 and return the resulting draft with `202` |
+| `GET` | `/api/v1/care-plan-drafts/:draftId` | `review.decide` | Draft state and artifact |
+| `POST` | `/api/v1/care-plan-drafts/:draftId/reviews` | `review.decide` | Start F4 with an empty `{}` body; `202` |
+| `GET` | `/api/v1/reviews` | `review.decide` | List reviews; optional `patientId` |
+| `GET` | `/api/v1/reviews/:reviewId` | `review.decide` | Review state and current human gate |
+| `GET` | `/api/v1/reviews/:reviewId/stream` | `review.decide` | SSE feed for the gate and decision |
+| `POST` | `/api/v1/reviews/:reviewId/decisions` | `review.decide` | Resume F4 with the gate decision; `202` |
+| `GET` | `/api/v1/patients/:patientId/care-plans` | session (nurse: `review.decide`) | Approved plans, revalidated against evidence |
+| `GET` | `/api/v1/plans` | session | Approved-plan view over backend-managed reviews; legacy `{ plans, audit }` shape |
+| `GET` | `/api/v1/plans/:patientId` | session | Single-patient compatibility view; `404` if none |
+
+A draft request is exactly:
+
+```json
+{ "assessmentId": "…", "followupDate": "YYYY-MM-DD", "hotline": "…" }
 ```
 
-A `?token=` query parameter would make `EventSource` work, but it leaks the
-token into access logs, proxy logs, and browser history. Do not do it.
+It requires a current confirmed F1 assessment for the same patient. F3 refuses
+to invent a follow-up date; a missing or invalid date fails validation.
 
-**3. CORS is not configured yet.** Same-origin works today; a cross-origin
-frontend needs an explicit allowlist. Do not "fix" this with `Access-Control-Allow-Origin: *`.
+A review decision is:
 
-**4. F3 will not guess.** Supply an explicit `followup_date` (`YYYY-MM-DD`) and
-`hotline`, or it returns `missing_facts`.
+```json
+{ "expectedVersion": 3, "requestId": "…", "actionId": "approve", "reviewerNote": "…" }
+```
 
-**5. F4 resume needs `request_id` at the top level.** Langflow 1.12.3 can return
-`200` while leaving the job silently suspended if it is omitted.
+`requestId` and `actionId` must match the gate returned by
+`GET /api/v1/reviews/:reviewId`. Review states include `STARTING`, `RUNNING`,
+`WAITING_FOR_HUMAN`, `DECISION_PENDING`, `APPROVED`, `REVISION_DRAFT`,
+`ESCALATED`, `FAILED`, `EXPIRED` and `UNKNOWN`. A revised draft is stored as a
+new draft and must go through a new explicit review; escalation and fallback
+remain plan outcomes.
 
----
+The SSE route requires the normal `Authorization` header. `EventSource` cannot
+send that header, so use `fetch()` with a `ReadableStream` reader. Do not put a
+session token in a query string: the route rejects query parameters, and tokens
+in URLs leak through proxy logs and browser history.
 
-## Local development
+### Alerts
+
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| `GET` | `/api/v1/alerts` | `alert.manage` | Global queue; `status=active`, `all`, or one exact status |
+| `GET` | `/api/v1/patients/:patientId/alerts` | session (nurse: `alert.manage`) | Alerts for one patient |
+| `GET` | `/api/v1/alerts/:alertId` | session (nurse: `alert.manage`) | Alert detail plus action timeline |
+| `POST` | `/api/v1/alerts/:alertId/actions` | `alert.manage` | Acknowledge, record follow-up or resolve |
+
+Alerts are created only from an acute F2 escalation (`escalate_immediately`).
+Statuses are `PENDING_REVIEW`, `ACKNOWLEDGED`, `IN_PROGRESS` and `RESOLVED`.
+An action body is
+`{ "action": "acknowledge" | "follow_up" | "resolve", "expectedVersion": n, "note": "…", … }`.
+Acknowledge accepts an optional note. Follow-up additionally requires
+`actionType`, `occurredAt` and a note; resolve requires a note and a prior
+follow-up. In alert responses, patient-visible summaries and staff-only
+internal notes are separate fields; patient responses never include internal
+notes or actor identities.
+
+### Homecare
+
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| `GET` | `/api/v1/homecare/services` | session | Active synthetic service catalog |
+| `GET` | `/api/v1/homecare/staff?patientId=…` | `booking.manage` | Eligible staff already assigned to that patient |
+| `POST` | `/api/v1/patients/:patientId/bookings` | patient (self) | Request a booking |
+| `GET` | `/api/v1/patients/:patientId/bookings` | session (nurse: `booking.manage`) | Patient's bookings |
+| `GET` | `/api/v1/bookings` | `booking.manage` | Nurse queue; `status=active` or one exact status |
+| `GET` | `/api/v1/bookings/:bookingId` | session (nurse: `booking.manage`) | Booking detail and timeline |
+| `POST` | `/api/v1/bookings/:bookingId/transitions` | patient cancel / `booking.manage` | Advance or close a booking |
+
+A booking request is:
+
+```json
+{
+  "serviceId": "…",
+  "preferredWindow": {
+    "startAt": "2026-11-01T02:00:00.000Z",
+    "endAt": "2026-11-01T04:00:00.000Z",
+    "timezone": "Asia/Jakarta"
+  },
+  "address": { "fullAddress": "…", "kelurahan": "…", "kecamatan": "…", "city": "…" },
+  "visitNote": "…"
+}
+```
+
+The preferred window must start in the future. Statuses are `Requested`,
+`Under Review`, `Scheduled`, `Completed`, `Cancelled` and `Rejected`. Same-staff
+overlapping `Scheduled` visits are rejected with `409 booking_schedule_conflict`;
+adjacent half-open windows are allowed. Completion requires an actual
+non-future time at or after the confirmed start and a patient-visible note.
+Terminal bookings cannot be reopened. Patients may cancel their own `Requested`
+or `Under Review` booking; `booking.manage` staff may reject/cancel according to
+state.
+
+This is a workflow simulation over a synthetic DKI Jakarta catalog. It does not
+dispatch a real nurse, guarantee availability, take payment, or call anyone.
+
+### Questions
+
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| `POST` | `/api/v1/patients/:patientId/questions` | session | Ask F5; body `{ "query": "…" }` |
+| `POST` | `/api/v1/answers` | session | Compatibility body `{ "patient_id": "…", "query": "…" }` |
+
+Answers are typed as `answer`, `refusal`, `emergency` or `error`. An `answer`
+carries citations with provenance (`approved_plan` or
+`unapproved_education`) and a synthetic-demo disclaimer. Before returning a
+grounded answer the backend checks the cited approved text against the canonical
+approval evidence. F5 availability is rechecked before each answer. Same-patient
+questions serialize inside this process; that lock is not distributed.
+
+### Operations
+
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| `GET` | `/api/health` | operator key or session | Liveness, Langflow reachability, review-DB presence, flow manifest |
+| `GET` | `/api/v1/flows` | `account.provision` | Flow-key → UUID map |
+
+`/api/health` returns no patient data. It reports `langflow: "reachable" |
+"unreachable"`, `reviewDbPresent`, `flowCount`, `manifestComplete`,
+`missingFlows`, `readOnly` and the demo disclaimer.
+
+The original unscoped proxy routes (`/api/v1/discharge`, `/api/v1/checkins`,
+`/api/v1/plans/draft` and the legacy review-job routes) are **not public**; they
+return `403`. All clinical work goes through the owned routes above.
+
+## Local setup
+
+Prerequisites: Bun (the service uses `bun:sqlite` and `Bun.password`), Docker
+for Langflow, and a writable data directory.
 
 ```bash
-cp .env.example .env      # then fill it in
-docker compose up -d      # Langflow on :7860
+cp .env.example .env
+chmod 600 .env
+mkdir -p data                  # or the parent directory of SYNCARE_STATE_DB
+# Fill in Langflow credentials, origins and a >=32-byte cursor secret.
+
 bun install
-bun src/index.ts          # console on :8080
+docker compose up -d langflow
+
+# Register the five flow exports with the running engine.
+bun run import:flows
+bun run discover:flows          # writes the current flow UUIDs to flows.json
+
+# Bind credentials to the imported flow nodes (only as needed for your install).
+bash scripts/set-langflow-variables.sh
+bun scripts/inject-gemini-key.ts   # or bind-gemini-key.ts when nodes read GEMINI_API_KEY
+
+# Create the operational database and the first accounts (one time only).
+chmod 600 /absolute/path/initial-accounts.json
+bun scripts/initialize-accounts.ts --initialize < /absolute/path/initial-accounts.json
+
+# Start the API.
+bun run start
 ```
 
-Bring up Langflow from a genuinely clean state:
+These are new-install steps, not an upgrade/reset procedure for an existing
+engine. Flow import and discovery alone do not certify the F2/F5 runtime
+bindings: verify the deployment-specific component IDs, code/edge hashes,
+folder IDs and configuration against the reviewed exports using
+[docs/runtime-bindings.md](docs/runtime-bindings.md). Container and host paths
+must resolve to the same canonical approval database, and F5 must have its
+protocol/vector-store paths configured. Do not overwrite live flows simply to
+start an already provisioned backend.
 
-```bash
-bash scripts/bring-up-langflow.sh
+The server prints its bind address, Langflow URL, review-DB path and read-only
+state. It binds `127.0.0.1:8080` by default.
+
+**Startup order matters.** The service does not create or seed the operational
+database. `initialize-accounts` creates and migrates it; starting the server
+against a missing state database fails with `state_db_missing`. The one-time
+initializer also refuses to run when any account already exists, and it never
+resets data.
+
+### One-time account initialization
+
+`initialize-accounts.ts --initialize` reads a private JSON document from stdin.
+This abbreviated example shows one nurse and one patient; the script requires
+2–10 of each:
+
+```json
+{
+  "operator": { "identifier": "operator@example.invalid", "password": "…" },
+  "nurses": [
+    {
+      "identifier": "nurse@example.invalid",
+      "password": "…",
+      "capabilities": [
+        "patient.manage", "patient.provision", "risk.confirm",
+        "review.decide", "booking.manage", "alert.manage"
+      ]
+    }
+  ],
+  "patients": [
+    {
+      "identifier": "patient@example.invalid",
+      "password": "…",
+      "displayName": "Synthetic Patient",
+      "nurseIdentifier": "nurse@example.invalid"
+    }
+  ]
+}
 ```
 
-### Checks
+It creates the operator, provisions nurses with the listed capabilities,
+creates synthetic patient profiles, assigns each patient to a nurse, creates
+the patient logins, and revokes the bootstrap sessions. It prints counts only
+and returns no credentials. A `local-demo-manifest.json` containing identifiers
+and record IDs (no passwords) is written next to `SYNCARE_STATE_DB`; it is
+created once and will not be overwritten.
+
+### Optional access and catalog setup
+
+These are explicit operator actions against an existing installation. Each
+reads private JSON from stdin, requires an operator credential with
+`capability.manage` (the initializers also check `account.provision`), audits
+grants and registrations, and prints no credentials.
+
+| Script | Input | Effect |
+|---|---|---|
+| `initialize-homecare.ts` | `{ credentials, nurseIdentifiers }` | Insert the synthetic catalog if missing; grant `booking.manage` to existing nurses |
+| `initialize-homecare-staff.ts` | `{ credentials, staff: [{ identifier, displayName }] }` | Register existing active nurses that already hold `booking.manage` as bookable staff |
+| `initialize-alert-access.ts` | `{ credentials, nurseIdentifiers }` | Grant `alert.manage` to existing assigned nurses |
+| `initialize-review-access.ts` | `{ credentials, nurseIdentifiers }` | Grant `review.decide` to existing assigned nurses |
+| `operator-capability.ts` | `{ credentials, change }` | Grant or revoke one capability with an expected version |
+
+None of these scripts expands patient assignments, reactivates records, reseeds
+clinical data, or runs automatically at startup.
+
+## Configuration
+
+Copy `.env.example` to `.env`. Secrets have no defaults and are never committed.
+Bun loads `.env` for `bun run` commands.
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `LANGFLOW_API_KEY` | yes | Server-side key for the Langflow API |
+| `LANGFLOW_BASE_URL` | no | Default `http://127.0.0.1:7860` |
+| `SYNCARE_BACKEND_ORIGIN` | yes | Exact origin clients use to reach this API |
+| `SYNCARE_WEB_ORIGIN` | yes | Allowed browser `Origin` |
+| `SYNCARE_ALLOW_LOCAL_HTTP` | no | Permit loopback HTTP origins for development |
+| `SYNCARE_CURSOR_SECRET` | yes | At least 32 bytes; signs pagination cursors |
+| `SYNCARE_STATE_DB` | no | Operational SQLite path; default `data/console-state.sqlite3` |
+| `SYNCARE_REVIEW_DB` | no | Canonical approval DB path; default `data/langflow/langflow/syncare-review.sqlite3` |
+| `SYNCARE_HOST` / `SYNCARE_PORT` | no | Default `127.0.0.1:8080` |
+| `SYNCARE_READ_ONLY` | no | Block mutations; login/logout still work |
+| `SYNCARE_API_KEY` | no | Operator credential accepted only by `GET /api/health` |
+| `SYNCARE_GUIDANCE_CONFIG` | no | Absolute path to emergency-guidance JSON; missing means unavailable |
+| `SYNCARE_F2_CONTEXT_CONFIG` | no | Absolute path to the F2 context/binding JSON |
+| `SYNCARE_PRIVATE_KEY_FILE` | Linux only | Absolute path to the 32-byte key for sealed private files |
+
+The Compose service also reads:
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `LANGFLOW_SUPERUSER` | yes | Fresh Langflow superuser name |
+| `LANGFLOW_SUPERUSER_PASSWORD` | yes | Fresh Langflow superuser password |
+| `LANGFLOW_SECRET_KEY` | yes | Fernet key that encrypts Langflow global Variables |
+| `GEMINI_API_KEY` | yes | Gemini credential used by the flows |
+| `LANGFLOW_PORT` | no | Host port for Langflow; default `7860` |
+| `LANGFLOW_AUTO_LOGIN` | no | Keep `false`; the human gate must not be bypassed |
+
+`LANGFLOW_SECRET_KEY` must be a Fernet key (`Fernet.generate_key()`), not a hex
+string. Losing it makes stored global Variables undecryptable. Exported flows
+carry redacted credential fields; a global Variable alone does not satisfy them,
+which is why the credential-binding scripts exist.
+
+### Storage
+
+- **Operational DB** (`SYNCARE_STATE_DB`): accounts, sessions, capability grants,
+  assignments, patients, discharge versions, assessments, confirmations,
+  check-ins and processing attempts, alerts/actions, homecare catalog/bookings,
+  care-plan drafts, review jobs/events/decisions, idempotency receipts and
+  operational audit. It uses WAL, foreign keys and numbered, checksum-tracked
+  migrations. Startup never resets or seeds it.
+- **Review DB** (`SYNCARE_REVIEW_DB`): canonical `approved_plans` and
+  `audit_log`, written only by F4. The backend opens it read-only. `GET
+  /api/health` reports whether it exists; F4 creates it when it first records an
+  approval.
+
+The two paths must be different. The service refuses an operational DB that
+looks like the approval DB, and refuses an unrecognized database.
+
+## Security notes
+
+- `.env` is gitignored and should be `chmod 600`. `.env.example` documents names
+  with empty values. Run `bash scripts/verify-secrets.sh` before committing.
+- Langflow's API key stays server-side. Do not publish the Langflow port to the
+  internet; restrict it to the backend host and operators.
+- Session tokens are hashed at rest. Do not log them or put them in URLs.
+- `SYNCARE_API_KEY` is health-only. It is not a user credential and does not
+  unlock patient or domain routes.
+- Login has in-process per-identifier and global attempt limits and bounds
+  concurrent password verification. Unknown identifiers use a dummy Argon2id
+  hash and the same generic denial response.
+- Authenticated clinical routes do not currently have general per-account
+  quotas, a global Langflow concurrency budget, or a credit-spend cap. Session
+  authentication alone does not prevent resource or LLM-credit exhaustion; add
+  deployment-level abuse controls before broad public use.
+- Domain routes reject unknown body fields, duplicate query parameters and
+  encoded path separators.
+- Read-only mode blocks every non-`GET`/`HEAD`/`OPTIONS` request except session
+  login and logout.
+- Private configuration supports sealed demo credentials and environment values:
+  Windows DPAPI (`dpapi:v1:`) or Linux AES-256-GCM (`aesgcm:v1:`) with an
+  external 32-byte key at `SYNCARE_PRIVATE_KEY_FILE`, mode `0600`. The adapter
+  never generates a key and never treats an invalid encrypted envelope as
+  plaintext. Plain JSON and unsealed environment inputs are also accepted by
+  the readers, so protect their files/process environment explicitly. Do not
+  copy a `dpapi:` value to Linux; re-provision it there.
+- `scripts/protect-local-secrets.ts` converts explicitly named files and prints
+  counts only. It has no default paths.
+
+## Checks
 
 ```bash
-bun test                  # 66 tests
-bunx tsc --noEmit         # typecheck
+bun test                  # unit and integration suites
+bunx tsc --noEmit         # TypeScript typecheck
 bash scripts/verify-secrets.sh
 ```
 
-### Scripts
+Additional live checks require a running Langflow instance and suitable flow
+data:
 
-| Script | Purpose |
-|---|---|
-| `scripts/verify-secrets.sh` | Fails if a real key pattern is committed |
-| `scripts/bring-up-langflow.sh` | Clean Langflow rebuild + health check |
-| `scripts/import-flows.ts` | Import `flows/*.json`, validating each |
-| `scripts/discover-flows.ts` | Resolve flow UUIDs by exact name into `flows.json` |
-| `scripts/set-langflow-variables.sh` | Upsert Langflow global Variables without printing them |
-| `scripts/inject-gemini-key.ts` | Populate the Gemini credential into imported node fields |
-| `scripts/fix-review-db-path.ts` | Repoint F4 at the container bind mount |
-| `scripts/fix-f5-paths.ts` | Repoint F5 node fields |
-| `scripts/patch-f5-constants.ts` | Repoint F5 Python module constants |
-| `scripts/smoke-all-flows.sh` | Independent F1/F2 smoke, incl. the red-flag branch |
-| `scripts/chain-full.sh` | F1 → F3 → F4 acceptance chain |
-| `scripts/smoke-f5.sh` | F5 approved vs. unapproved (fail-closed) |
-
----
-
-## Credentials
-
-Every secret lives in `.env` (gitignored, `chmod 600`) and is read at startup.
-`.env.example` documents the variables with empty values.
-
-Two Langflow-specific notes, learned the hard way:
-
-- `LANGFLOW_SECRET_KEY` must be a **Fernet** key (`Fernet.generate_key()`), not
-  `openssl rand -hex 32`, or Variables cannot be decrypted.
-- The Gemini credential authenticates with the **`x-goog-api-key`** header.
-  Query-parameter and `Authorization: Bearer` do not work for a Gemini API key.
-
-Imported flow exports carry `***REDACTED***` credential fields. A global
-Variable alone does not satisfy them; `scripts/inject-gemini-key.ts` populates
-the live flow definitions instead.
-
----
+```bash
+bash scripts/smoke-all-flows.sh   # F1/F2, including the red-flag branch
+bash scripts/chain-full.sh        # F1 → F3 → F4 acceptance chain
+bash scripts/smoke-f5.sh          # F5 approved vs unapproved
+```
 
 ## Operations
 
-See **[docs/OPERATIONS.md](docs/OPERATIONS.md)** for the systemd unit
-(`syncare-console.service`), token rotation, read-only demo mode, health
-checks, and troubleshooting.
+- The reference deployment uses the systemd **user** unit
+  `syncare-console.service`:
 
-Other documents:
+  ```bash
+  systemctl --user status  syncare-console.service
+  systemctl --user restart syncare-console.service   # after editing .env
+  journalctl --user -u syncare-console.service -f
+  ```
 
-- [docs/flow-shapes.md](docs/flow-shapes.md): observed request/response shapes
-- [docs/runtime-bindings.md](docs/runtime-bindings.md): flow-binding verification
-- [docs/cross-platform-secrets.md](docs/cross-platform-secrets.md): local secret provisioning
-- [docs/storage-foundation.md](docs/storage-foundation.md): storage model
+- Bind the console to loopback and terminate TLS in a reverse proxy. The proxy
+  must forward `Authorization` and disable response buffering for the F4 SSE
+  route (`flush_interval -1` in the Caddy example under `deploy/`).
+- Health check:
+
+  ```bash
+  curl -s -H "Authorization: Bearer $SYNCARE_API_KEY" \
+    http://127.0.0.1:8080/api/health
+  ```
+
+- Read-only demo mode: set `SYNCARE_READ_ONLY=1` and restart. Login and logout
+  continue to work; all other writes return `403`. Background workers do not
+  start. F1 startup recovery skips its repair writes in read-only mode; a
+  writable restart is required to reconcile orphaned assessments.
+- Startup applies migrations and recovers interrupted assessments and reviews
+  before the listener accepts traffic. It never replays an uncertain F1/F2/F3/F4
+  call automatically; request a fresh action explicitly.
+
+Host-specific deployment notes (systemd, Caddy, troubleshooting) are in
+[docs/OPERATIONS.md](docs/OPERATIONS.md). Its older single-token curl examples
+predate account sessions; the session rules in this README are authoritative.
+Secret provisioning is covered in
+[docs/cross-platform-secrets.md](docs/cross-platform-secrets.md).
+
+## Repository layout
+
+| Path | Contents |
+|---|---|
+| `src/app.ts` | Origin/auth gate and route dispatch |
+| `src/index.ts` | Startup: migrations, recovery, workers, listener |
+| `src/legacy-app.ts` | Historical single-key HTTP adapter, mounted internally behind the gateway |
+| `src/modules/` | Auth, patients, assessments, check-ins, alerts, homecare, plans, reviews, questions |
+| `src/storage/` | Operational SQLite store and numbered migrations |
+| `flows/` | Five Langflow flow exports |
+| `flows.json` | Flow key → UUID map |
+| `config/` | Example F2 context, emergency guidance and F5 runtime config |
+| `scripts/` | Provisioning, flow import/repair, verification and smoke checks |
+| `deploy/` | Caddy virtual-host example |
+| `docs/` | Runbook and reference notes |
+
+## Further reading
+
+- [docs/flow-shapes.md](docs/flow-shapes.md): observed F1–F5 request/response shapes
+- [docs/runtime-bindings.md](docs/runtime-bindings.md): flow-binding verification tooling
+- [docs/cross-platform-secrets.md](docs/cross-platform-secrets.md): sealed private files and the protection CLI
+- [docs/OPERATIONS.md](docs/OPERATIONS.md): deployment runbook and troubleshooting
+
+## Limitations
+
+- Synthetic demo data only; not a medical device and not clinically validated.
+- No real homecare dispatch, staff availability guarantee, payment or call
+  placement.
+- FHIR-shaped artifacts are not SATUSEHAT submissions.
+- SQLite and in-process workers are single-node. Per-patient question
+  serialization is process-local, not a distributed lock.
+- Retention and expiry behavior depend on the deployment; this repository does
+  not promise automatic expiry or indefinite retention.
