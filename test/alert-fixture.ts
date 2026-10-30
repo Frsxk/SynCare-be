@@ -17,6 +17,6 @@ export async function alertFixture(){
     const processor=new CheckinProcessor(f.store,{clock,runF2:async c=>({raw:{synthetic:true},sessionId:c.sessionId,outputText:JSON.stringify(action==='acute'?{action:'escalate_immediately',reason:'Alasan akut sintetis dari F2.'}:{...routine(c.patientId,c.baselineScore),...(c.baselineScore===7?{score:7,tier:'HIGH',baseline_tier:'HIGH'}:{}),...(action==='review'?{action:'trigger_plan_review'}:{})})})})
     await processor.processNext({checkinId:report.id,attemptId:report.processing.id});return checkins.read(f.ctx('patient-a'),report.id)
   }
-  const create=async()=>{const report=await source();await producer.reconcile();await producer.processNext();return{report,alert:alerts.list(f.ctx(),undefined,{limit:20}).items.find(a=>a.source.reportId===report.id)!}}
+  const create=async()=>{const report=await source();await producer.reconcile();await producer.processNext();return{report,alert:alerts.list(f.ctx(),undefined,{limit:20}).items.find(a=>a.source.type==='F2'&&a.source.reportId===report.id)!}}
   return{...f,checkins,clock,advance,alerts,producer,source,create}
 }

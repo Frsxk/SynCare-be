@@ -104,7 +104,7 @@ export function createApp(deps: ApplicationDependencies) {
       if (config.readOnly && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)) throw new DomainError('forbidden')
       if (url.pathname === '/api/v1/accounts/patient-links') return await authRoutes.handle(request)
       if (/^\/api\/v1\/(?:patients\/[A-Za-z0-9_-]+\/(?:care-plan-drafts|care-plans)|care-plan-drafts\/[A-Za-z0-9_-]+(?:\/reviews)?|reviews(?:\/[A-Za-z0-9_-]+(?:\/(?:decisions|stream))?)?)$/.test(url.pathname)) return await planRoutes.handle(request)
-      if (/^\/api\/v1\/(?:alerts(?:\/[A-Za-z0-9_-]+(?:\/actions)?)?|patients\/[A-Za-z0-9_-]+\/alerts)$/.test(url.pathname)) return await alertRoutes.handle(request)
+      if (/^\/api\/v1\/(?:alerts(?:\/[A-Za-z0-9_-]+(?:\/actions)?)?|patients\/[A-Za-z0-9_-]+\/(?:alerts|emergencies))$/.test(url.pathname)) return await alertRoutes.handle(request)
       if (/^\/api\/v1\/(?:homecare\/(?:services|staff)|patients\/[A-Za-z0-9_-]+\/bookings|bookings(?:\/[A-Za-z0-9_-]+(?:\/transitions)?)?)$/.test(url.pathname)) return await homecareRoutes.handle(request)
       if (/^\/api\/v1\/(?:patients\/[A-Za-z0-9_-]+\/checkins|checkins\/[A-Za-z0-9_-]+|monitoring|emergency-guidance)$/.test(url.pathname)) return await checkinRoutes.handle(request)
       if (/^\/api\/v1\/(?:discharges\/[A-Za-z0-9_-]+\/assessments|assessments\/[A-Za-z0-9_-]+\/confirmations|patients\/[A-Za-z0-9_-]+\/assessments)$/.test(url.pathname)) return await assessmentRoutes.handle(request)

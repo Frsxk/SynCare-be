@@ -21,6 +21,7 @@ try{
     const response=await call(`alerts/${row.id}`,nurse.sessionToken);check(response.status===200);check(response.headers.get('cache-control')?.includes('no-store'))
     const alert=(await response.json() as {data:AlertDetail}).data
     check(alert.source.type==='F2'&&alert.source.action==='escalate_immediately'&&alert.urgency==='acute')
+    if(alert.source.type!=='F2')throw Error('expected_f2_fixture_source')
     const original=await call(`checkins/${alert.source.reportId}`,nurse.sessionToken);check(original.status===200)
     const report=(await original.json() as {data:CheckinRecord}).data
     check(report.processing.state==='SUCCEEDED'&&report.outcome?.action==='escalate_immediately')

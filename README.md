@@ -294,12 +294,23 @@ in URLs leak through proxy logs and browser history.
 
 | Method | Path | Access | Purpose |
 |---|---|---|---|
+| `POST` | `/api/v1/patients/:patientId/emergencies` | patient (self) | Record a direct urgent request in the assigned nurse queue |
 | `GET` | `/api/v1/alerts` | `alert.manage` | Global queue; `status=active`, `all`, or one exact status |
 | `GET` | `/api/v1/patients/:patientId/alerts` | session (nurse: `alert.manage`) | Alerts for one patient |
 | `GET` | `/api/v1/alerts/:alertId` | session (nurse: `alert.manage`) | Alert detail plus action timeline |
 | `POST` | `/api/v1/alerts/:alertId/actions` | `alert.manage` | Acknowledge, record follow-up or resolve |
 
-Alerts are created only from an acute F2 escalation (`escalate_immediately`).
+Alerts have two distinct sources: a trusted acute F2 escalation
+(`source.type=F2`, `escalate_immediately`) or an authenticated direct patient
+request (`source.type=PATIENT_REQUEST`, `request_immediate_help`). Direct
+requests accept exactly `{ "reason": "…" }` (trimmed, nonempty, at most 8000
+Unicode code points) with a UUID `Idempotency-Key`. They return HTTP 201 with
+`{data:{resource,replayed}}`, create the durable queue entry immediately, and
+require neither an F1 baseline nor an LLM call. Replaying the same key and
+reason returns the same alert; changing the reason with that key conflicts.
+Patient requests expose a `requestId` rather than fabricated F2 report/attempt
+IDs. Migration 0009 preserves existing F2 alerts and timelines. Neither source
+contacts a hospital, sends an ambulance, or guarantees an immediate response.
 Statuses are `PENDING_REVIEW`, `ACKNOWLEDGED`, `IN_PROGRESS` and `RESOLVED`.
 An action body is
 `{ "action": "acknowledge" | "follow_up" | "resolve", "expectedVersion": n, "note": "…", … }`.

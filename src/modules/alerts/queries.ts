@@ -2,17 +2,24 @@ import type { Store,Transaction } from '../../storage/database.ts'
 import { DomainError,type RequestContext } from '../contracts/errors.ts'
 import { CursorCodec,type Page,type PageInput } from '../contracts/pagination.ts'
 import { assertPatientScope,currentIdentity,patientScope,requireCapability } from '../patients/service.ts'
-import type { AlertRow,AlertSummary,AlertDetail,ActionRow,Timeline,AlertStatus } from './contracts.ts'
+import type { AlertRow,AlertSummary,AlertDetail,ActionRow,Timeline,AlertStatus,AlertSource } from './contracts.ts'
 type Reader=Pick<Store,'get'|'all'>|Transaction
 export function authorize(reader:Reader,ctx:RequestContext,patientId?:string){
   currentIdentity(reader,ctx.principal)
   if(ctx.principal.role==='nurse')requireCapability(reader,ctx.principal,'alert.manage')
   if(patientId)assertPatientScope(reader,ctx.principal,patientId)
 }
+function source(row:AlertRow):AlertSource {
+  if(row.source_type==='F2'&&row.checkin_id&&row.attempt_id&&row.source_action==='escalate_immediately')
+    return{type:'F2',reportId:row.checkin_id,attemptId:row.attempt_id,action:'escalate_immediately',reason:row.reason,reportedAt:row.reported_at,outcomeAt:row.source_at}
+  if(row.source_type==='PATIENT_REQUEST'&&!row.checkin_id&&!row.attempt_id&&row.source_action==='request_immediate_help'&&row.requested_by)
+    return{type:'PATIENT_REQUEST',requestId:row.id,action:'request_immediate_help',reason:row.reason,reportedAt:row.reported_at,outcomeAt:row.source_at}
+  throw new DomainError('processing_failed')
+}
 function summary(reader:Reader,ctx:RequestContext,row:AlertRow):AlertSummary {
   const name=ctx.principal.role==='nurse'?reader.get<{profile_json:string}>('SELECT profile_json FROM patients WHERE id=?',[row.patient_id]):null
   const patientName=name?(JSON.parse(name.profile_json) as {displayName:string}).displayName:undefined
-  return{id:row.id,patientId:row.patient_id,...(patientName?{patientName}:{}),source:{type:'F2',reportId:row.checkin_id,attemptId:row.attempt_id,action:'escalate_immediately',reason:row.reason,reportedAt:row.reported_at,outcomeAt:row.source_at},
+  return{id:row.id,patientId:row.patient_id,...(patientName?{patientName}:{}),source:source(row),
     urgency:'acute',status:row.status,version:row.version,acknowledgedAt:row.acknowledged_at,resolvedAt:row.resolved_at,createdAt:row.created_at,updatedAt:row.updated_at}
 }
 export class AlertQueries {

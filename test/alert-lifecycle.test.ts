@@ -52,7 +52,7 @@ test('bounded timeline pagination and filter-scoped queue; append-only source/ac
   expect(f.alerts.list(f.ctx(),undefined,{limit:1},'active').items.map(a=>a.id)).toEqual([other.id])
   const all=f.alerts.list(f.ctx(),undefined,{limit:1},'all');expect(all.nextCursor).not.toBeNull()
   expect(()=>f.alerts.list(f.ctx(),undefined,{limit:1,cursor:all.nextCursor!},'active')).toThrow()
-  await expect(f.store.transaction(tx=>tx.run('INSERT INTO alerts SELECT ?,patient_id,checkin_id,attempt_id,source_type,source_action,reason,reported_at,source_at,status,version,acknowledged_at,resolved_at,created_at,updated_at FROM alerts WHERE id=?',['duplicate',other.id]))).rejects.toThrow()
+  await expect(f.store.transaction(tx=>tx.run('INSERT INTO alerts(id,patient_id,checkin_id,attempt_id,source_type,source_action,reason,reported_at,source_at,status,version,acknowledged_at,resolved_at,created_at,updated_at) SELECT ?,patient_id,checkin_id,attempt_id,source_type,source_action,reason,reported_at,source_at,status,version,acknowledged_at,resolved_at,created_at,updated_at FROM alerts WHERE id=?',['duplicate',other.id]))).rejects.toThrow()
 })
 
 test('missing current action evidence fails closed instead of publishing an unsupported acknowledgment',async()=>{

@@ -17,7 +17,7 @@ export function createAlertRoutes(auth:AuthService,alerts:AlertService){
       await auth.getSession(token);return result
     }catch(error){return errorResponse(error,requestId)}
   }
-  const respond=(data:unknown,requestId:string)=>Response.json({data,requestId},{headers:{'Cache-Control':'private, no-store'}})
+  const respond=(data:unknown,requestId:string,status=200)=>Response.json({data,requestId},{status,headers:{'Cache-Control':'private, no-store'}})
   const params=(request:Request)=>{const p=new URL(request.url).searchParams;if(new Set(p.keys()).size!==[...p.keys()].length)throw new DomainError('validation_failed');return p}
   const list=(request:Request,patientId?:string)=>execute(request,async ctx=>{
     const p=params(request),filter=parseAlertFilter(p.get('status')??undefined);p.delete('status')
@@ -27,6 +27,10 @@ export function createAlertRoutes(auth:AuthService,alerts:AlertService){
   return new Elysia({name:'syncare-alerts'})
     .get('/api/v1/alerts',({request})=>list(request))
     .get('/api/v1/patients/:patientId/alerts',({request,params})=>list(request,params.patientId))
+    .post('/api/v1/patients/:patientId/emergencies',({request,params:route})=>execute(request,async ctx=>{
+      if(new URL(request.url).search)throw new DomainError('validation_failed')
+      return respond(await alerts.requestEmergency(ctx,route.patientId,await readJsonRequest(request)),ctx.requestId,201)
+    }),{parse:'none'})
     .get('/api/v1/alerts/:alertId',({request,params:route})=>execute(request,async ctx=>respond(alerts.read(ctx,route.alertId,pageInput(Object.fromEntries(params(request)))),ctx.requestId)))
     .post('/api/v1/alerts/:alertId/actions',({request,params:route})=>execute(request,async ctx=>{
       if(new URL(request.url).search)throw new DomainError('validation_failed')
