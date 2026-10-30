@@ -21,7 +21,7 @@ export function createAlertRoutes(auth:AuthService,alerts:AlertService){
   const params=(request:Request)=>{const p=new URL(request.url).searchParams;if(new Set(p.keys()).size!==[...p.keys()].length)throw new DomainError('validation_failed');return p}
   const list=(request:Request,patientId?:string)=>execute(request,async ctx=>{
     const p=params(request),filter=parseAlertFilter(p.get('status')??undefined);p.delete('status')
-    const page=alerts.list(ctx,patientId,pageInput(Object.fromEntries(p)),filter)
+    const page=alerts.list(ctx,patientId,pageInput(Object.fromEntries(p)),filter,ctx.principal.role!=='patient'||request.headers.get('x-syncare-alert-sources')==='all')
     return Response.json({data:page.items,nextCursor:page.nextCursor,requestId:ctx.requestId},{headers:{'Cache-Control':'private, no-store'}})
   })
   return new Elysia({name:'syncare-alerts'})

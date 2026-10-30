@@ -311,6 +311,13 @@ reason returns the same alert; changing the reason with that key conflicts.
 Patient requests expose a `requestId` rather than fabricated F2 report/attempt
 IDs. Migration 0009 preserves existing F2 alerts and timelines. Neither source
 contacts a hospital, sends an ambulance, or guarantees an immediate response.
+Patient alert-list clients opt into the new source with
+`X-SynCare-Alert-Sources: all`. Without this header, patient list responses stay
+F2-only so existing APKs retain a parseable history; the filter runs before
+pagination. Nurse queues include both sources by default. The rebuilt patient
+app sets this header; it is a representation capability, not an authorization
+credential. Alert detail/ownership checks and nurse action permissions are
+unchanged.
 Statuses are `PENDING_REVIEW`, `ACKNOWLEDGED`, `IN_PROGRESS` and `RESOLVED`.
 An action body is
 `{ "action": "acknowledge" | "follow_up" | "resolve", "expectedVersion": n, "note": "…", … }`.

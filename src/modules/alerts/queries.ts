@@ -40,14 +40,14 @@ export class AlertQueries {
       ...(ctx.principal.role==='nurse'?{action:a.action,actorId:a.actor_id,occurredAt:a.occurred_at,actionType:a.action_type,internalNote:a.internal_note}:{})}))
     return{...summary(this.store,ctx,row),timeline,timelineNextCursor:rows.length>page.limit&&last?this.codec.encode(scope,{id:String(last.version),createdAt:last.recorded_at}):null}
   }
-  list(ctx:RequestContext,patientId:string|undefined,page:PageInput,filter:'all'|'active'|AlertStatus='all'):Page<AlertSummary>{
+  list(ctx:RequestContext,patientId:string|undefined,page:PageInput,filter:'all'|'active'|AlertStatus='all',includePatientRequests=true):Page<AlertSummary>{
     if(!Number.isInteger(page.limit)||page.limit<1||page.limit>100)throw new DomainError('validation_failed')
     authorize(this.store,ctx,patientId)
     if(!patientId&&ctx.principal.role!=='nurse')throw new DomainError('forbidden')
-    const scope=`alerts:${ctx.principal.id}:${ctx.principal.role}:${patientId??'assigned'}:${filter}`,allowed=patientScope(this.store,ctx.principal)
+    const scope=`alerts:${ctx.principal.id}:${ctx.principal.role}:${patientId??'assigned'}:${filter}${includePatientRequests?'':':legacy-f2'}`,allowed=patientScope(this.store,ctx.principal)
     const boundary=page.cursor?this.codec.decode(scope,page.cursor):null
     const where=filter==='all'?'':filter==='active'?"AND a.status!='RESOLVED'":'AND a.status=?'
-    const rows=this.store.all<AlertRow>(`SELECT a.* FROM alerts a WHERE a.patient_id IN (SELECT id FROM patients WHERE ${allowed.sql}) ${patientId?'AND a.patient_id=?':''} ${where}
+    const rows=this.store.all<AlertRow>(`SELECT a.* FROM alerts a WHERE a.patient_id IN (SELECT id FROM patients WHERE ${allowed.sql}) ${patientId?'AND a.patient_id=?':''} ${includePatientRequests?'':"AND a.source_type='F2'"} ${where}
       ${boundary?'AND (julianday(a.created_at)<julianday(?) OR (julianday(a.created_at)=julianday(?) AND a.id<?))':''} ORDER BY julianday(a.created_at) DESC,a.id DESC LIMIT ?`,
       [...allowed.bindings,...(patientId?[patientId]:[]),...(!['all','active'].includes(filter)?[filter]:[]),...(boundary?[boundary.createdAt,boundary.createdAt,boundary.id]:[]),page.limit+1])
     const items=rows.slice(0,page.limit),last=items.at(-1)
